@@ -1,0 +1,25 @@
+# .NET
+bin/
+obj/
+publish/
+*.user
+api/api.zip
+*.db
+*.db-wal
+*.db-shm
+
+# Generated SPA bundle copied into the API at deploy time
+api/wwwroot/
+
+# Node / Angular
+node_modules/
+web/dist/
+web/.angular/
+.swa/
+
+# Functions local
+functions/local.settings.json
+
+# Misc
+.DS_Store
+*.log

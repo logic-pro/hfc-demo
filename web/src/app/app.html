@@ -1,0 +1,71 @@
+<header class="topbar">
+  <div class="brandmark">HFC<span>scheduling</span></div>
+  <div class="tagline">Eight Brands. One Platform. — multi-tenant demo</div>
+</header>
+
+<main>
+  <!-- Tenant picker: selecting a brand sets X-Tenant-Id for every call -->
+  <section class="picker">
+    <label>Acting as brand (tenant):</label>
+    <div class="brand-chips">
+      @for (b of brands(); track b.id) {
+        <button
+          class="chip"
+          [class.active]="b.id === selectedBrandId()"
+          (click)="selectBrand(b.id)">
+          {{ b.name }}
+        </button>
+      }
+    </div>
+  </section>
+
+  @if (error()) { <div class="banner error">{{ error() }}</div> }
+  @if (notice()) { <div class="banner notice">{{ notice() }}</div> }
+
+  @if (selectedBrand(); as brand) {
+    <div class="context">
+      <h2>{{ brand.name }}</h2>
+      <p>{{ brand.tagline }}</p>
+      <label class="cust">
+        Customer:
+        <input type="text" [ngModel]="customerName()" (ngModelChange)="customerName.set($event)" />
+      </label>
+    </div>
+
+    <div class="columns">
+      <section class="col">
+        <h3>Open slots @if (loading()) { <span class="muted">loading…</span> }</h3>
+        @if (openSlots().length === 0 && !loading()) { <p class="muted">No open slots.</p> }
+        @for (s of openSlots(); track s.id) {
+          <div class="card slot">
+            <div>
+              <strong>{{ s.territoryName }}</strong>
+              <div class="muted">{{ fmt(s.startUtc) }}</div>
+            </div>
+            <button class="btn primary" (click)="book(s)">Book</button>
+          </div>
+        }
+      </section>
+
+      <section class="col">
+        <h3>Appointments</h3>
+        @if (appointments().length === 0) { <p class="muted">None yet.</p> }
+        @for (a of appointments(); track a.id) {
+          <div class="card appt">
+            <div>
+              <strong>#{{ a.id }} · {{ a.customerName }}</strong>
+              <div class="muted">{{ a.service }} — {{ fmt(a.startUtc) }}</div>
+            </div>
+            @if (a.depositPaid) {
+              <span class="paid">Deposit ${{ a.depositCents / 100 }} ✓</span>
+            } @else {
+              <button class="btn" (click)="payDeposit(a)">Pay deposit $50</button>
+            }
+          </div>
+        }
+      </section>
+    </div>
+  } @else {
+    <p class="hint">Pick a brand above to load its tenant-isolated schedule.</p>
+  }
+</main>
