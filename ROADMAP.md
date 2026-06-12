@@ -12,6 +12,53 @@
 
 ---
 
+## 0. THIS WEEK — the demo plan (deadline-driven)
+
+The 7-feature spec is a 12-month team effort; **none of it is the goal for next
+week.** The demo is *already live and working*. This week is about (a) closing the
+one real gap, and (b) adding 1–2 high-signal slices that light up JD keywords — then
+rehearsing the story. Each slice has its own worktree (set up under
+`../hfc-demo-worktrees/`) so they can progress independently.
+
+**Priority order — build A, then B, then C; D is stretch.**
+
+| Slice (worktree branch) | What | JD keyword it proves | Must/Stretch |
+|---|---|---|---|
+| **A** `slice-a-auth-tenancy` | Tenant from **auth token claim** (AD B2C) instead of `X-Tenant-Id` header; integration tests incl. the concurrency test | Azure security, multi-tenant correctness | **MUST** (it's also the security fix) |
+| **B** `slice-b-ai-intake` | AI-assisted intake: Azure OpenAI / Claude extracts a typed intake schema from a free-text request | "AI-assisted development" — the JD differentiator | **MUST** (highest wow) |
+| **C** `slice-c-nps-pipeline` | Post-service NPS → review-gen on the existing Durable Functions backbone | event-driven Azure, Durable Functions depth | High (cheap — extends what's built) |
+| **D** `slice-d-franchisee-dashboard` | Angular dashboard page: per-tenant KPIs + a chart | strong Angular, data viz | Stretch (Angular already shown) |
+
+**Day-by-day (working back from the demo):**
+
+- **Day 1 — Slice A (foundation).** Wire AD B2C (or Entra) login; move tenant
+  resolution to the verified token claim (query filter unchanged). Add the
+  xUnit/WebApplicationFactory integration tests + the optimistic-concurrency test.
+  Merge A to `main` — everything else branches from it.
+- **Day 2 — Slice B.** AI-assisted intake using structured outputs/tool-calling
+  (typed schema, human-verifiable fields). Screenshot it.
+- **Day 3 — Slice C.** NPS→review Durable orchestration; verify finalized/expired
+  paths live, like the booking workflow.
+- **Day 4 — integrate + redeploy.** Merge B/C, `./infra/deploy.sh` to centralus,
+  run `e2e/smoke-api.sh` + the Playwright driver against the live URL. Reset the
+  demo DB to a clean slate. (Stretch: Slice D if time.)
+- **Day 5 — rehearse.** Walk the demo script end-to-end; drill the per-technology
+  docs in [docs/](docs/); pre-empt the "tenant header is insecure" question (now
+  fixed) and the "how would you scale to JM Family" question (see
+  [docs/architecture/enterprise-jmfamily.md](docs/architecture/enterprise-jmfamily.md)).
+- **Buffer.** Fixes; teardown plan (`az group delete -n hfc-demo-rg --yes`).
+
+**Demo script (5 min):** pick a brand → AI intake turns a sentence into a structured
+booking → book a slot (show the 409 if double-booked) → pay deposit (idempotent) →
+the Durable workflow confirms/reminds/finalizes → show it deployed on Azure with
+managed identity and one-origin hosting. Close with the enterprise blueprint.
+
+**Worktree workflow:** `cd ../hfc-demo-worktrees/slice-b-ai-intake` and work there;
+each is a full checkout on its own branch. A (auth/tenancy) is foundational, so
+merge it to `main` first, then rebase B/C/D on `main` before merging them.
+
+---
+
 ## 1. Verdict on the spec
 
 **What's right:** It's anchored in the real business (franchisor + franchisee +
