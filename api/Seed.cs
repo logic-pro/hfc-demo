@@ -1,7 +1,9 @@
 namespace HfcDemo;
 
-// Seeds the 8 real HFC brands plus a couple of territories and open slots each,
-// so the demo has tenant-isolated data the moment it boots. Idempotent: skips
+// Seeds the 8 real HFC brands; under each brand two franchisees (the isolation
+// boundary), each with a territory and open slots. Two franchisees per brand
+// makes the demo's point: same brand, different franchisee → fully isolated
+// (Budget Blinds Irvine must not see Budget Blinds Tustin). Idempotent: skips
 // if brands already exist.
 public static class Seed
 {
@@ -17,6 +19,13 @@ public static class Seed
         ("lightspeed",      "Lightspeed Restoration","Water, fire & mold restoration."),
     };
 
+    // (region label, city, slug suffix) — each becomes a franchisee per brand.
+    private static readonly (string Region, string City, string Slug)[] Regions =
+    {
+        ("Irvine", "Irvine, CA", "irvine"),
+        ("Tustin", "Tustin, CA", "tustin"),
+    };
+
     public static void Run(AppDb db)
     {
         db.Database.EnsureCreated();
@@ -29,19 +38,36 @@ public static class Seed
         // Deterministic-enough demo data anchored to today, 09:00 UTC.
         var baseDay = DateTime.UtcNow.Date.AddHours(9);
         int territoryId = 1;
-        foreach (var (id, _, _) in Brands)
+        foreach (var (brandId, brandName, _) in Brands)
         {
-            // two territories per brand
-            foreach (var city in new[] { "Irvine, CA", "Tustin, CA" })
+            foreach (var (region, city, slug) in Regions)
             {
-                var te = new Territory { Id = territoryId++, BrandId = id, Name = $"{city} Crew", City = city };
+                var franchiseeId = $"{brandId}-{slug}";
+                db.Franchisees.Add(new Franchisee
+                {
+                    Id = franchiseeId,
+                    BrandId = brandId,
+                    Name = $"{brandName} — {region}",
+                    Region = region,
+                });
+
+                var te = new Territory
+                {
+                    Id = territoryId++,
+                    FranchiseeId = franchiseeId,
+                    BrandId = brandId,
+                    Name = $"{city} Crew",
+                    City = city,
+                };
                 db.Territories.Add(te);
+
                 // four open slots over the next two days
                 for (int d = 0; d < 2; d++)
                     for (int h = 0; h < 2; h++)
                         db.Slots.Add(new Slot
                         {
-                            BrandId = id,
+                            FranchiseeId = franchiseeId,
+                            BrandId = brandId,
                             TerritoryId = te.Id,
                             StartUtc = baseDay.AddDays(d).AddHours(h * 3),
                             IsBooked = false,

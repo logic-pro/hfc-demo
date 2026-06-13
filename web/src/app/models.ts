@@ -6,6 +6,22 @@ export interface Brand {
   tagline: string;
 }
 
+// A franchisee is the tenancy boundary (brand is the grouping). The picker uses
+// this to stand in for a B2C/Entra login: selecting one mints a scoped token.
+export interface Franchisee {
+  id: string;
+  brandId: string;
+  brandName: string;
+  name: string;
+  region: string;
+}
+
+export interface DevTokenResponse {
+  token: string;
+  franchiseeId: string;
+  brandId: string;
+}
+
 export interface Slot {
   id: number;
   territoryId: number;

@@ -3,21 +3,22 @@
 //
 // Drives the REAL running stack through a real user flow and saves a PNG:
 //   1. load the SPA (http://localhost:4200)
-//   2. pick a brand (sets the tenant) and screenshot the loaded schedule
+//   2. sign in as a franchisee (mints a token → sets the tenant) and screenshot
 //   3. book the first open slot  -> proves the booking path
 //   4. pay the deposit           -> proves the idempotent-payment path
 //   5. screenshot the result
 //
 // Prereqs: API on :5180 and `ng serve` on :4200 (see SKILL.md).
-// Usage:   node e2e/drive.mjs [brandName] [outDir]
-//          node e2e/drive.mjs "Budget Blinds" /tmp
+// Usage:   node e2e/drive.mjs [franchiseeLabel] [outDir]
+//          node e2e/drive.mjs "Budget Blinds · Irvine" /tmp
+// The label is matched against the chip text "{brand} · {region}".
 
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const WEB = process.env.WEB_URL ?? "http://localhost:4200";
-const brandName = process.argv[2] ?? "Budget Blinds";
+const franchiseeLabel = process.argv[2] ?? "Budget Blinds · Irvine";
 const outDir = resolve(process.argv[3] ?? "/tmp");
 mkdirSync(outDir, { recursive: true });
 
@@ -31,13 +32,13 @@ page.on("console", (m) => { if (m.type() === "error") fails.push(m.text()); });
 try {
   await page.goto(WEB, { waitUntil: "networkidle" });
   await page.waitForSelector(".chip", { timeout: 15000 });
-  console.log("loaded SPA; brand chips:", await page.locator(".chip").count());
+  console.log("loaded SPA; franchisee chips:", await page.locator(".chip").count());
 
-  // 2. pick the tenant
-  await page.getByRole("button", { name: brandName, exact: true }).click();
+  // 2. sign in as the franchisee (mints a token, sets the tenant)
+  await page.locator(".chip", { hasText: franchiseeLabel }).first().click();
   await page.waitForSelector(".slot, .muted", { timeout: 8000 });
   const openBefore = await page.locator(".slot").count();
-  console.log(`selected "${brandName}"; open slots: ${openBefore}`);
+  console.log(`signed in as "${franchiseeLabel}"; open slots: ${openBefore}`);
   await shot(page, "hfc-1-schedule.png");
 
   // 3. book the first open slot

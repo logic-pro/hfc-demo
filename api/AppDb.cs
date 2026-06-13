@@ -2,11 +2,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HfcDemo;
 
-// Holds the tenant resolved for the current request (scoped). Set by
-// TenantMiddleware from the X-Tenant-Id header; read by the query filter below.
+// Holds the tenant resolved for the current request (scoped). Populated by
+// TenantResolver.Populate from the VERIFIED token's claims (see Auth.cs), not
+// from any client-supplied header. Read by the global query filter below.
 public class TenantContext
 {
-    public string? BrandId { get; set; }
+    public string? FranchiseeId { get; set; }   // isolation key (boundary)
+    public string? BrandId { get; set; }         // grouping (not a boundary)
 }
 
 public class AppDb : DbContext
@@ -16,6 +18,7 @@ public class AppDb : DbContext
         => _tenant = tenant;
 
     public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Franchisee> Franchisees => Set<Franchisee>();
     public DbSet<Territory> Territories => Set<Territory>();
     public DbSet<Slot> Slots => Set<Slot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
@@ -23,13 +26,16 @@ public class AppDb : DbContext
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<Brand>().HasKey(x => x.Id);
+        b.Entity<Franchisee>().HasKey(x => x.Id);
+        b.Entity<Franchisee>().HasIndex(x => x.BrandId);   // group franchisees by brand
 
-        // Tenant isolation: every tenant-scoped entity is filtered to the
-        // current BrandId. With no tenant set, EF compares against null and
-        // returns nothing — fail-closed, never cross-tenant.
-        b.Entity<Territory>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
-        b.Entity<Slot>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
-        b.Entity<Appointment>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
+        // Tenant isolation: the same global-query-filter mechanism as before,
+        // re-keyed from BrandId to the FranchiseeId resolved from the token
+        // claim. With no franchisee set, EF compares against null and returns
+        // nothing — fail-closed, never cross-tenant.
+        b.Entity<Territory>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
+        b.Entity<Slot>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
+        b.Entity<Appointment>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
 
         // Concurrency token for double-booking protection (see Slot.Version).
         b.Entity<Slot>().Property(x => x.Version).IsConcurrencyToken();
@@ -37,10 +43,13 @@ public class AppDb : DbContext
         // A slot can only be booked once: unique appointment per slot.
         b.Entity<Appointment>().HasIndex(x => x.SlotId).IsUnique();
 
-        // Every tenant-scoped query carries WHERE BrandId = @t; index it.
-        // Composite (BrandId, StartUtc) serves the ordered slot/appointment lists.
-        b.Entity<Territory>().HasIndex(x => x.BrandId);
-        b.Entity<Slot>().HasIndex(x => new { x.BrandId, x.StartUtc });
-        b.Entity<Appointment>().HasIndex(x => new { x.BrandId, x.StartUtc });
+        // Every tenant-scoped query carries WHERE FranchiseeId = @t; index it.
+        // Composite (FranchiseeId, StartUtc) serves the ordered slot/appt lists.
+        // BrandId is indexed too for cross-franchisee grouping (corporate aggregates).
+        b.Entity<Territory>().HasIndex(x => x.FranchiseeId);
+        b.Entity<Slot>().HasIndex(x => new { x.FranchiseeId, x.StartUtc });
+        b.Entity<Slot>().HasIndex(x => x.BrandId);
+        b.Entity<Appointment>().HasIndex(x => new { x.FranchiseeId, x.StartUtc });
+        b.Entity<Appointment>().HasIndex(x => x.BrandId);
     }
 }
