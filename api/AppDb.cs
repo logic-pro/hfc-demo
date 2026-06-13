@@ -22,6 +22,7 @@ public class AppDb : DbContext
     public DbSet<Territory> Territories => Set<Territory>();
     public DbSet<Slot> Slots => Set<Slot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<NpsSurvey> NpsSurveys => Set<NpsSurvey>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -36,6 +37,10 @@ public class AppDb : DbContext
         b.Entity<Territory>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
         b.Entity<Slot>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
         b.Entity<Appointment>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
+        // NPS is scoped exactly like Appointment: FranchiseeId is the isolation
+        // boundary; BrandId + TerritoryId ride along denormalized for the dashboard
+        // grain (corporate roll-up by brand, franchisee aggregation by territory).
+        b.Entity<NpsSurvey>().HasQueryFilter(x => x.FranchiseeId == _tenant.FranchiseeId);
 
         // Concurrency token for double-booking protection (see Slot.Version).
         b.Entity<Slot>().Property(x => x.Version).IsConcurrencyToken();
@@ -51,5 +56,13 @@ public class AppDb : DbContext
         b.Entity<Slot>().HasIndex(x => x.BrandId);
         b.Entity<Appointment>().HasIndex(x => new { x.FranchiseeId, x.StartUtc });
         b.Entity<Appointment>().HasIndex(x => x.BrandId);
+
+        // NPS: one survey per appointment (the response is the unit of truth).
+        // (FranchiseeId, TerritoryId) backs the franchisee dashboard's NPS-by-territory
+        // GROUP BY — the territory-resolvable feed; BrandId is indexed for corporate
+        // roll-ups, mirroring Appointment/Slot.
+        b.Entity<NpsSurvey>().HasIndex(x => x.AppointmentId).IsUnique();
+        b.Entity<NpsSurvey>().HasIndex(x => new { x.FranchiseeId, x.TerritoryId });
+        b.Entity<NpsSurvey>().HasIndex(x => x.BrandId);
     }
 }

@@ -184,6 +184,64 @@ app.MapPost("/api/intake/parse", async (IntakeRequest req, IntakeService intake,
     return Results.Ok(draft);
 }).RequireAuthorization();
 
+// Record a post-service NPS response (the Durable NpsWorkflow's review-gen runs
+// off the same score). This is the row the dashboards read — so it's the source
+// of truth that flips NPS from seeded to measured. One survey per appointment;
+// a second response for the same appointment is rejected as a conflict.
+app.MapPost("/api/appointments/{id:int}/nps",
+    async (int id, NpsRequest req, AppDb db) =>
+{
+    if (req.Score is < 0 or > 10)
+        return Results.Problem(statusCode: 400, title: "NPS score must be 0–10.");
+
+    // Read the appointment through the tenant filter: a survey can only be
+    // recorded against the current franchisee's own appointment (else 404,
+    // never cross-tenant). FranchiseeId/BrandId/TerritoryId are copied from it,
+    // not from client input, so the survey inherits the appointment's isolation
+    // boundary and dashboard grain exactly.
+    var appt = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+    if (appt is null) return Results.NotFound();
+
+    if (await db.NpsSurveys.AnyAsync(s => s.AppointmentId == id))
+        return Results.Conflict("NPS already recorded for this appointment.");
+
+    var survey = new NpsSurvey
+    {
+        FranchiseeId = appt.FranchiseeId,   // isolation key — inherited from the appointment
+        BrandId = appt.BrandId,             // grouping (denormalized)
+        TerritoryId = appt.TerritoryId,     // denormalize for territory-level aggregation
+        AppointmentId = appt.Id,
+        Score = req.Score,
+        Comment = req.Comment ?? "",
+        RespondedAt = DateTime.UtcNow,
+    };
+    db.NpsSurveys.Add(survey);
+    try
+    {
+        await db.SaveChangesAsync();
+    }
+    catch (DbUpdateException)              // unique-index race: two responses at once
+    {
+        return Results.Conflict("NPS already recorded for this appointment.");
+    }
+    return Results.Created($"/api/appointments/{appt.Id}/nps",
+        new NpsSurveyDto(survey.Id, survey.AppointmentId, survey.TerritoryId,
+            survey.Score, survey.Comment, survey.RespondedAt));
+}).RequireAuthorization();
+
+// All NPS responses for the current tenant — the dashboards' measured-NPS feed.
+// Tenant-filtered (by FranchiseeId), territory-resolvable without a join: the
+// dashboard groups this by the denormalized TerritoryId to flip its NPS tile
+// from seeded to measured.
+app.MapGet("/api/nps", async (AppDb db) =>
+{
+    var surveys = await db.NpsSurveys.OrderBy(s => s.RespondedAt)
+        .Select(s => new NpsSurveyDto(s.Id, s.AppointmentId, s.TerritoryId,
+            s.Score, s.Comment, s.RespondedAt))
+        .ToListAsync();
+    return Results.Ok(surveys);
+}).RequireAuthorization();
+
 // SPA fallback: any non-API, non-file route serves index.html so Angular's
 // client-side router can take over. Excludes /api and /swagger.
 app.MapFallbackToFile("index.html");

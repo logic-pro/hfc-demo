@@ -65,6 +65,24 @@ public class Appointment                 // tenant-scoped (by FranchiseeId)
     public string? DepositKey { get; set; }
 }
 
+public class NpsSurvey                    // tenant-scoped (by FranchiseeId), like Appointment
+{
+    public int Id { get; set; }
+    public string FranchiseeId { get; set; } = "";   // isolation key — the boundary, copied from the appointment
+    public string BrandId { get; set; } = "";        // grouping (denormalized) — corporate roll-ups, not a boundary
+    // Denormalized from the appointment so the franchisee dashboards can aggregate
+    // NPS *by territory* in one line (a GROUP BY TerritoryId) without joining back
+    // to Appointment. This is the "territory-resolvable" guarantee Slice D rides on.
+    public int TerritoryId { get; set; }
+    public int AppointmentId { get; set; }
+    // Clean Net Promoter Score on the canonical 0–10 scale (validated at the edge).
+    // Promoter 9–10 / Passive 7–8 / Detractor 0–6 — the dashboard's NPS math is just
+    // %promoters − %detractors over this column, so it must never hold anything else.
+    public int Score { get; set; }
+    [MaxLength(1000)] public string Comment { get; set; } = "";
+    public DateTime RespondedAt { get; set; }
+}
+
 // ── DTOs (never expose entities directly; keeps the contract stable) ────────
 public record BrandDto(string Id, string Name, string Tagline);
 public record FranchiseeDto(string Id, string BrandId, string BrandName, string Name, string Region);
@@ -76,3 +94,6 @@ public record DepositRequest(int AmountCents);
 // B2C / Entra login during the demo). Gated to the Development environment.
 public record DevTokenRequest(string FranchiseeId);
 public record DevTokenResponse(string Token, string FranchiseeId, string BrandId);
+// NPS pipeline: post-service survey response and its dashboard-facing read shape.
+public record NpsRequest(int Score, string? Comment);
+public record NpsSurveyDto(int Id, int AppointmentId, int TerritoryId, int Score, string Comment, DateTime RespondedAt);
