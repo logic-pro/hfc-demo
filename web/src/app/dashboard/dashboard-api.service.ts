@@ -18,8 +18,9 @@ export class DashboardApiService {
   private http = inject(HttpClient);
   private base = (window as any).__API_BASE__ ?? 'http://localhost:5180';
 
-  /** Set false once GET /api/dashboard exists (see API-CONTRACT.md). */
-  private static readonly USE_MOCK = true;
+  /** Live: GET /api/dashboard now exists (see API-CONTRACT.md). Flip to true to
+   *  demo offline against dashboard.mock.ts — the shapes are identical. */
+  private static readonly USE_MOCK = false;
 
   getDashboard(filters: DashboardFilters): Observable<DashboardResponse> {
     if (DashboardApiService.USE_MOCK) {

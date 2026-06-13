@@ -4,7 +4,8 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
 
 /** Slide-over detail for a selected action row: the appointment, its workflow
  *  stage, and the recommended next action. Closes on backdrop / Esc / button.
- *  Action buttons are stubbed in mock mode (wired to ApiService when live). */
+ *  "Send deposit link" emits to the page, which calls ApiService.deposit(...);
+ *  busy/error are driven back in so the drawer shows in-flight + failure state. */
 @Component({
   selector: 'app-detail-drawer',
   standalone: true,
@@ -12,7 +13,7 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
   template: `
     @if (row(); as r) {
       <div class="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Appointment detail">
-        <div class="absolute inset-0 bg-slate-900/30" (click)="close.emit()"></div>
+        <div class="absolute inset-0 bg-slate-900/30" (click)="busy() || close.emit()"></div>
 
         <aside class="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-xl">
           <header class="flex items-start justify-between border-b border-slate-100 px-5 py-4">
@@ -38,16 +39,22 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
             </div>
           </div>
 
-          <footer class="flex gap-2 border-t border-slate-100 px-5 py-4">
-            @if (!r.depositPaid) {
-              <button type="button" class="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
-                Send deposit link
-              </button>
+          <footer class="flex flex-col gap-2 border-t border-slate-100 px-5 py-4">
+            @if (error()) {
+              <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error() }}</p>
             }
-            <button type="button" (click)="close.emit()"
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">
-              Close
-            </button>
+            <div class="flex gap-2">
+              @if (!r.depositPaid) {
+                <button type="button" (click)="sendDeposit.emit(r)" [disabled]="busy()"
+                  class="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+                  {{ busy() ? 'Sending…' : 'Send deposit link' }}
+                </button>
+              }
+              <button type="button" (click)="close.emit()" [disabled]="busy()"
+                class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                Close
+              </button>
+            </div>
           </footer>
         </aside>
       </div>
@@ -57,10 +64,13 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
 })
 export class DetailDrawerComponent {
   readonly row = input.required<ActionRowDto | null>();
+  readonly busy = input<boolean>(false);
+  readonly error = input<string | null>(null);
   readonly close = output<void>();
+  readonly sendDeposit = output<ActionRowDto>();
 
   onEsc(): void {
-    if (this.row()) this.close.emit();
+    if (this.row() && !this.busy()) this.close.emit();
   }
   when(iso: string): string { return formatDateTimeShort(iso); }
   deposit(cents: number): string { return formatCurrencyCents(cents); }

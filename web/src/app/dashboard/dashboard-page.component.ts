@@ -4,6 +4,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators';
 
+import { ApiService } from '../api.service';
 import { DashboardApiService } from './dashboard-api.service';
 import {
   ActionRowDto, ActionStageFilter, DashboardFilters, DashboardResponse,
@@ -146,12 +147,18 @@ interface DashboardVm {
         </div>
       </main>
 
-      <app-detail-drawer [row]="selectedRow()" (close)="selectedRow.set(null)" />
+      <app-detail-drawer
+        [row]="selectedRow()"
+        [busy]="depositBusy()"
+        [error]="depositError()"
+        (sendDeposit)="payDeposit($event)"
+        (close)="closeDrawer()" />
     </div>
   `,
 })
 export class DashboardPageComponent {
   private api = inject(DashboardApiService);
+  private bookingApi = inject(ApiService);
 
   // ── filter state (signals) ─────────────────────────────────────────────────
   readonly filters = signal<DashboardFilters>({ period: 'MTD', territoryId: null });
@@ -159,6 +166,13 @@ export class DashboardPageComponent {
   // drill target applied to the action table; preserved across filter changes
   readonly actionFilter = signal<ActionStageFilter>('all');
   readonly selectedRow = signal<ActionRowDto | null>(null);
+
+  // detail-drawer deposit action state
+  readonly depositBusy = signal(false);
+  readonly depositError = signal<string | null>(null);
+
+  /** Demo deposit amount when the row carries none (cents). */
+  private static readonly DEFAULT_DEPOSIT_CENTS = 5000;
 
   // manual reload nonce (retry)
   private readonly reloadTick = signal(0);
@@ -253,5 +267,33 @@ export class DashboardPageComponent {
   }
   reload(): void {
     this.reloadTick.update((n) => n + 1);
+  }
+
+  closeDrawer(): void {
+    if (this.depositBusy()) return;
+    this.selectedRow.set(null);
+    this.depositError.set(null);
+  }
+
+  /** Wire the "Send deposit link" action to the existing deposit endpoint.
+   *  Idempotency-Key makes a retry a server-side no-op; on success we refresh
+   *  the read-model so the funnel/KPIs/table reflect the captured deposit. */
+  payDeposit(row: ActionRowDto): void {
+    if (this.depositBusy()) return;
+    this.depositBusy.set(true);
+    this.depositError.set(null);
+    const cents = row.depositCents > 0 ? row.depositCents : DashboardPageComponent.DEFAULT_DEPOSIT_CENTS;
+    const key = `dash-${row.appointmentId}-${crypto.randomUUID()}`;
+    this.bookingApi.deposit(row.appointmentId, cents, key).subscribe({
+      next: () => {
+        this.depositBusy.set(false);
+        this.selectedRow.set(null);
+        this.reload();
+      },
+      error: () => {
+        this.depositBusy.set(false);
+        this.depositError.set('Could not record the deposit. Check the API and try again.');
+      },
+    });
   }
 }
