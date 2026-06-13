@@ -21,9 +21,10 @@ echo "Smoke-testing $B"
 n=$(curl -s "$B/api/brands" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$n" "8" "brand catalog returns 8 brands"
 
-# 16 franchisees in the catalog (untenanted) — two per brand
+# at least the 16 operational franchisees (two per brand); dashboard lanes seed more.
+# Assert a floor, not an exact count — the catalog grows as lanes add seed data.
 fn=$(curl -s "$B/api/franchisees" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
-chk "$fn" "16" "franchisee catalog returns 16 franchisees"
+chk "$([ "$fn" -ge 16 ] && echo ok || echo "$fn")" "ok" "franchisee catalog returns >=16 franchisees (got $fn)"
 
 # auth gating: no token -> 401 (fail-closed at the edge)
 chk "$(code "$B/api/slots")" "401" "slots without a token -> 401"
