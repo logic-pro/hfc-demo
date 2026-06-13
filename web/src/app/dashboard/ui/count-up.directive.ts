@@ -7,7 +7,7 @@ import { formatPartial, formatValue } from './health';
 // settling, not a slot machine. Respects prefers-reduced-motion.
 @Directive({ selector: '[ecCountUp]' })
 export class CountUpDirective implements OnChanges {
-  @Input('ecCountUp') value = 0;
+  @Input('ecCountUp') value: number | null | undefined = 0;
   @Input() unit: Unit = 'count';
   @Input() durationMs = 900;
   @Input() delayMs = 0;
@@ -23,6 +23,15 @@ export class CountUpDirective implements OnChanges {
 
   ngOnChanges(): void {
     const target = this.value;
+    // Null-safe (integration graft): a missing/unwired live metric must not tween
+    // toward NaN — render 'Unavailable' once and stop. formatValue owns the copy.
+    if (target === null || target === undefined || Number.isNaN(target)) {
+      cancelAnimationFrame(this.raf);
+      this.host.textContent = formatValue(target, this.unit);
+      this.displayed = 0;
+      this.hasRun = true;
+      return;
+    }
     // A re-emit of the same value (e.g. a parent re-render that didn't touch the
     // data) must not restart the count — that zero-flash is the flicker.
     if (this.hasRun && this.displayed === target) return;

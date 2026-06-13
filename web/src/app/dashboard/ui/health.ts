@@ -56,7 +56,12 @@ export const BAND_RANGE: Record<HealthBand, string> = {
 
 // ── Value formatting ─────────────────────────────────────────────────────────
 // Hero numbers are the product. Format them tightly and consistently.
-export function formatValue(value: number, unit: Unit): string {
+// Null-safe (integration graft): CONTRACT §2 types value as a non-null `number`,
+// but a live response can omit/null a metric whose source isn't wired yet. Guard
+// at this single formatting seam so a missing value renders a clear 'Unavailable'
+// — never a misleading 0 or a raw 'NaN'.
+export function formatValue(value: number | null | undefined, unit: Unit): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'Unavailable';
   switch (unit) {
     case 'dollars':
       return formatDollars(value);
@@ -86,7 +91,8 @@ export function formatCount(v: number): string {
 }
 
 // The count-up animation needs to know how to render an interpolated value.
-export function formatPartial(value: number, unit: Unit): string {
+export function formatPartial(value: number | null | undefined, unit: Unit): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'Unavailable';
   switch (unit) {
     case 'dollars':
       return formatDollars(value);

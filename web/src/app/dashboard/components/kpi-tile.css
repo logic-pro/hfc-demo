@@ -69,6 +69,30 @@
   margin-top: 2px;
 }
 
+/* ── Genuinely-unsourced metric (integration graft): dashed, never a fake number ── */
+.tile[data-unavailable='true']::after { opacity: .25; background: var(--ink-4); box-shadow: none; }
+.tile-value.unavailable {
+  font-size: 34px;
+  color: var(--ink-4);
+  letter-spacing: .08em;
+}
+.gap-note {
+  margin: 0; margin-top: auto;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 7px;
+  font-size: 11px; line-height: 1.4; color: var(--ink-3);
+  border: 1px dashed var(--surface-line);
+  border-radius: var(--r-sm);
+  padding: 7px 9px;
+  background: repeating-linear-gradient(
+    -45deg, transparent, transparent 6px,
+    rgba(255, 255, 255, .012) 6px, rgba(255, 255, 255, .012) 12px
+  );
+}
+.gap-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+
 /* ── Foot: trend + sparkline ─────────────────────────────────────────────── */
 .tile-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: auto; }
 .trend {

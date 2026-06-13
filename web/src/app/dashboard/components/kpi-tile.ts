@@ -16,6 +16,7 @@ import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
       <article
         class="tile card"
         [attr.data-prov]="v.provenanceType"
+        [attr.data-unavailable]="isUnavailable()"
         [class.plane-lit]="planeState() === 'lit'"
         [class.plane-dim]="planeState() === 'dim'"
         [style.--accent-line]="lineColor()"
@@ -28,20 +29,27 @@ import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
           </span>
         </header>
 
-        <div class="tile-value tnum" [ecCountUp]="v.value" [unit]="v.unit" [delayMs]="delayMs"></div>
+        @if (isUnavailable()) {
+          <!-- Genuinely unsourced (refreshStatus 'missing'): show the gap, not a
+               fake number. 'seeded' metrics keep their illustrative value above. -->
+          <div class="tile-value unavailable" aria-label="Unavailable">—</div>
+          <p class="gap-note"><span class="gap-tag">Unavailable</span>{{ gap() }}</p>
+        } @else {
+          <div class="tile-value tnum" [ecCountUp]="v.value" [unit]="v.unit" [delayMs]="delayMs"></div>
 
-        <div class="tile-foot">
-          <div class="trend" [attr.data-dir]="trendKind()">
-            @if (v.trendPercent !== undefined) {
-              <span class="arrow">{{ arrow() }}</span>
-              <span class="tnum">{{ trendText() }}</span>
-              <span class="trend-cap">YoY</span>
+          <div class="tile-foot">
+            <div class="trend" [attr.data-dir]="trendKind()">
+              @if (v.trendPercent !== undefined) {
+                <span class="arrow">{{ arrow() }}</span>
+                <span class="tnum">{{ trendText() }}</span>
+                <span class="trend-cap">YoY</span>
+              }
+            </div>
+            @if (v.spark?.length) {
+              <ec-sparkline class="tile-spark" [data]="v.spark!" [color]="lineColor()" [w]="116" [h]="32" />
             }
           </div>
-          @if (v.spark?.length) {
-            <ec-sparkline class="tile-spark" [data]="v.spark!" [color]="lineColor()" [w]="116" [h]="32" />
-          }
-        </div>
+        }
 
         <footer class="tile-meta">
           <span class="asof tnum">as of {{ v.asOfDate }}</span>
@@ -79,6 +87,30 @@ export class KpiTileComponent {
 
   // Higher-is-better for all hero metrics EXCEPT these (up = bad).
   private static readonly LOWER_IS_BETTER = new Set(['territories_at_risk', 'no_show_rate']);
+
+  // Integration graft: when a metric is GENUINELY unsourced — refreshStatus
+  // 'missing', or a null/NaN value from a live response — the tile must not render
+  // an illustrative number. It degrades to a dashed 'Unavailable' + the gap note
+  // (exactly what has to be wired). 'seeded' is NOT unavailable: it keeps its
+  // labelled illustrative value (the demo's full-looking number). The gap copy is
+  // a Charlie-side presentation aid keyed by metricKey (no CONTRACT §2 change).
+  private static readonly GAP_BY_KEY: Record<string, string> = {
+    system_revenue_ltm: 'Requires completed_job.invoiceAmount (OLTP field not yet wired)',
+    royalty_revenue_ltm: 'Requires completed_job.invoiceAmount + territory.royalty_rate',
+    royalty_collection_rate: 'Requires royalty invoicing + payment reporting',
+    same_territory_growth_yoy: 'Requires ≥12 months of completed_job.invoiceAmount history',
+  };
+
+  readonly isUnavailable = computed(() => {
+    const v = this._v();
+    if (!v) return false;
+    const value = v.value as number | null | undefined;
+    return v.refreshStatus === 'missing' || value === null || value === undefined || Number.isNaN(value as number);
+  });
+
+  readonly gap = computed(
+    () => KpiTileComponent.GAP_BY_KEY[this._v()!.metricKey] ?? 'Source not yet wired for this metric.',
+  );
 
   readonly provLabel = computed(() => PROVENANCE_LABEL[this._v()!.provenanceType]);
   readonly provTitle = computed(() => {
