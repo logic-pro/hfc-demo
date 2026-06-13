@@ -6,7 +6,7 @@
 > this contract, not to each other.** Any change here is a cross-stream event:
 > edit this file, bump the version, and ping the other leads before diverging.
 
-**Contract version:** `v1` · **Target:** Demo v1 ("demo now, real platform later")
+**Contract version:** `v1.1` · **Target:** Demo v1 ("demo now, real platform later")
 · **Source of truth for rationale:** the tech spec + ROADMAP §0 + the three
 `franchise-*` / `corporate-rollup-*` skills.
 
@@ -149,6 +149,25 @@ provenance. Period defaults to latest; `trailingWindow` months optional.
     "explanation":"NPS below brand threshold; declined two consecutive periods." } ],
   "totalCount":1 }
 ```
+
+### `GET /api/dashboard/map?brandId?&regionId?`  _(v1.1, additive)_
+Lean dot-per-territory projection for the health map (D12). Separate from
+`/api/territories` because the registry item carries no score and the map needs
+no franchisee/openDate. `atRisk` = `compositeScore < 50`.
+```json
+{ "items": [
+  { "territoryId":1, "territoryName":"Orange County North", "brandId":1,
+    "brandName":"Budget Blinds", "regionId":1, "lat":33.72, "lng":-117.83,
+    "compositeScore":67, "scoreStatus":"partial", "atRisk":false } ],
+  "totalCount":24 }
+```
+
+> **Changelog v1 → v1.1 (Bravo, additive — no existing shape changed):** added
+> `GET /api/dashboard/map`. Resolves the lat/long gap (D9 backlog asked for
+> lat/long, but the frozen `/api/territories` item omitted it and has no score
+> to shade dots). `/api/territories` stays byte-for-byte identical, so existing
+> fixtures are unaffected. **Alpha:** lat/long live on the territory dimension /
+> `territory_period_summary`. **Charlie:** point D12 at `/api/dashboard/map`.
 
 ---
 

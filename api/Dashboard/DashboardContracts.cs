@@ -100,6 +100,24 @@ public record WatchlistItemDto(
     string DetectedAt,
     string Explanation);
 
+// GET /api/dashboard/map  (CONTRACT v1.1, additive — see §2)
+// Lean projection for the territory-health map (D12): one dot per territory,
+// shaded by composite score. Separate from /api/territories on purpose — the
+// registry item carries no score, the map needs no franchisee/openDate.
+public record MapDto(IReadOnlyList<MapItemDto> Items, int TotalCount);
+
+public record MapItemDto(
+    int TerritoryId,
+    string TerritoryName,
+    int BrandId,
+    string BrandName,
+    int RegionId,
+    double Lat,
+    double Lng,
+    int CompositeScore,
+    string ScoreStatus,
+    bool AtRisk);
+
 // GET /api/territories
 public record TerritoryPageDto(
     IReadOnlyList<TerritoryListItemDto> Items,

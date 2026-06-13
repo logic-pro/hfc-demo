@@ -91,6 +91,29 @@ public static class DashboardEndpoints
             return Results.Ok(new WatchlistDto(items, items.Count));
         });
 
+        // Map dots for the territory-health map (D12). Read-only projection:
+        // dimension lat/lng + the PRE-COMPUTED composite score (no recompute).
+        app.MapGet("/api/dashboard/map", (
+            IDashboardReadModel rm, DashboardScopeHolder holder, int? brandId, int? regionId) =>
+        {
+            var items = rm.Territories
+                .Where(t => holder.Scope.Allows(t.TerritoryId))               // scope first
+                .Where(t => brandId is null || t.BrandId == brandId)
+                .Where(t => regionId is null || t.RegionId == regionId)
+                .OrderBy(t => t.TerritoryId)
+                .Select(t =>
+                {
+                    var s = rm.Score(t.TerritoryId, rm.LatestPeriodId);
+                    int composite = s?.Composite ?? 0;
+                    return new MapItemDto(
+                        t.TerritoryId, t.TerritoryName, t.BrandId, t.BrandName, t.RegionId,
+                        t.Lat, t.Lng, composite, s?.ScoreStatus ?? "unknown", composite < 50);
+                })
+                .ToList();
+
+            return Results.Ok(new MapDto(items, items.Count));
+        });
+
         // D9 — Territory registry (paged + filterable).
         app.MapGet("/api/territories", (
             IDashboardReadModel rm, DashboardScopeHolder holder,
