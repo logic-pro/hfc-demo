@@ -61,3 +61,11 @@
     <div class="card placeholder"><span class="eyebrow">Watchlist</span><p>D15</p></div>
   </section>
 </div>
+
+<!-- ── Territory scorecard drawer (D14) ──────────────────────────────────────── -->
+<ec-scorecard
+  [data]="scoreData()"
+  [loading]="scoreLoading()"
+  [open]="scorecardOpen()"
+  (close)="closeScorecard()"
+/>

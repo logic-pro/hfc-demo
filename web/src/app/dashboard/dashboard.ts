@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DashboardDataService } from './dashboard-data.service';
-import { CorporateDashboard, TerritoryListItem } from './dashboard.models';
+import { CorporateDashboard, TerritoryHealthScore, TerritoryListItem } from './dashboard.models';
 import { KpiTileComponent } from './components/kpi-tile';
 import { TerritoryMapComponent } from './components/territory-map';
+import { ScorecardComponent } from './components/scorecard';
 
 // The executive landing surface. v1 wires the hero-8 (D11); the map, distribution,
 // provenance, scorecard and watchlist sections land in subsequent slices. Loads
@@ -10,7 +11,7 @@ import { TerritoryMapComponent } from './components/territory-map';
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [KpiTileComponent, TerritoryMapComponent],
+  imports: [KpiTileComponent, TerritoryMapComponent, ScorecardComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -25,6 +26,9 @@ export class DashboardComponent {
 
   // Drill target — set by clicking a map dot / table row; opens the scorecard (D14).
   readonly selectedTerritoryId = signal<number | null>(null);
+  readonly scoreData = signal<TerritoryHealthScore | null>(null);
+  readonly scoreLoading = signal(false);
+  readonly scorecardOpen = computed(() => this.selectedTerritoryId() !== null);
 
   readonly vitalSigns = computed(() => this.corporate()?.vitalSigns ?? []);
   readonly dataNotes = computed(() => this.corporate()?.dataNotes ?? []);
@@ -46,5 +50,15 @@ export class DashboardComponent {
 
   selectTerritory(t: TerritoryListItem): void {
     this.selectedTerritoryId.set(t.territoryId);
+    this.scoreData.set(null);
+    this.scoreLoading.set(true);
+    this.data.healthScore(t.territoryId).subscribe({
+      next: (s) => { this.scoreData.set(s); this.scoreLoading.set(false); },
+      error: () => { this.scoreLoading.set(false); },
+    });
+  }
+
+  closeScorecard(): void {
+    this.selectedTerritoryId.set(null);
   }
 }
