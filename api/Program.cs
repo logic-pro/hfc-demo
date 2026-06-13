@@ -40,6 +40,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDb>();
     Seed.Run(db);
+    // Build the corporate read model from the seeded operational/reported planes.
+    // One on-demand/boot rebuild (CONTRACT clock decision); idempotent full rebuild.
+    Rollup.Recompute(db);
 }
 
 app.UseAuthentication();
