@@ -25,9 +25,9 @@ import { formatCount, formatPercent } from '../utils/number-format.util';
             <div class="h-full rounded-full bg-slate-700" [style.width.%]="widthPct(s.count)"></div>
           </div>
           @if (s.conversionFromPrev !== null) {
-            <p class="mt-1 text-xs" [class]="(s.conversionFromPrev ?? 1) < 0.7 ? 'text-red-600 font-medium' : 'text-slate-500'">
+            <p class="mt-1 text-xs" [class]="s.conversionFromPrev < 0.7 ? 'text-red-600 font-medium' : 'text-slate-500'">
               {{ pct(s.conversionFromPrev) }} retained from previous
-              @if ((s.conversionFromPrev ?? 1) < 0.7) { · biggest leak }
+              @if (s.conversionFromPrev < 0.7) { · biggest leak }
             </p>
           }
         </button>

@@ -6,7 +6,7 @@ import { TenantService } from './tenant.service';
 import { Appointment, Brand, Slot } from './models';
 
 @Component({
-  selector: 'app-root',
+  selector: 'app-booking',
   imports: [FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css',
