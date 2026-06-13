@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ApiService } from './api.service';
 import { TenantService } from './tenant.service';
-import { Appointment, Franchisee, Slot } from './models';
+import { Appointment, Franchisee, IntakeDraft, Slot, TimeOfDay, Urgency } from './models';
 
 @Component({
   selector: 'app-root',
@@ -21,9 +21,17 @@ export class App implements OnInit {
   readonly appointments = signal<Appointment[]>([]);
   readonly selectedFranchiseeId = this.tenant.franchiseeId; // signal, shared with interceptor
   readonly customerName = signal('Jane Doe');
+  readonly service = signal('In-home consult'); // what gets booked; pre-filled by AI intake
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
+
+  // ── AI-assisted intake state ────────────────────────────────────────────
+  readonly intakeText = signal('');
+  readonly draft = signal<IntakeDraft | null>(null);
+  readonly parsing = signal(false);
+  readonly timeOptions: TimeOfDay[] = ['Any', 'Morning', 'Afternoon', 'Evening'];
+  readonly urgencyOptions: Urgency[] = ['Routine', 'Soon', 'Emergency'];
 
   readonly selectedFranchisee = computed(() =>
     this.franchisees().find((f) => f.id === this.selectedFranchiseeId()) ?? null,
@@ -43,6 +51,7 @@ export class App implements OnInit {
   selectFranchisee(f: Franchisee): void {
     this.error.set(null);
     this.notice.set(null);
+    this.draft.set(null); // intake vocabulary is per-brand; start fresh on franchisee switch
     this.api.token(f.id).subscribe({
       next: (res) => {
         this.tenant.setSession(res.franchiseeId, res.brandId, res.token);
@@ -50,6 +59,46 @@ export class App implements OnInit {
       },
       error: () => this.error.set('Could not sign in as that franchisee.'),
     });
+  }
+
+  // Free text -> typed draft. The backend caps spend/latency and degrades to a
+  // local heuristic on failure, so this call always resolves to a usable draft.
+  parseIntake(): void {
+    const text = this.intakeText().trim();
+    if (!text) return;
+    this.parsing.set(true);
+    this.error.set(null);
+    this.api.parseIntake(text).subscribe({
+      next: (d) => {
+        this.draft.set(d);
+        this.parsing.set(false);
+      },
+      error: () => {
+        this.error.set('Intake parsing failed — type the booking in by hand.');
+        this.parsing.set(false);
+      },
+    });
+  }
+
+  // Immutably patch one field of the draft as the human reviews/edits it.
+  patchDraft<K extends keyof IntakeDraft>(key: K, value: IntakeDraft[K]): void {
+    const d = this.draft();
+    if (d) this.draft.set({ ...d, [key]: value });
+  }
+
+  // Commit the reviewed draft into the booking flow: its name + service become
+  // what the next "Book" click uses. The draft stays visible as context.
+  useDraft(): void {
+    const d = this.draft();
+    if (!d) return;
+    if (d.customerName) this.customerName.set(d.customerName);
+    this.service.set(d.service);
+    this.notice.set(`Intake applied — booking as “${d.customerName ?? this.customerName()}” for “${d.service}”. Pick a slot below.`);
+  }
+
+  discardDraft(): void {
+    this.draft.set(null);
+    this.intakeText.set('');
   }
 
   // Parallel reads with forkJoin — both complete before we paint.
@@ -72,7 +121,7 @@ export class App implements OnInit {
   book(slot: Slot): void {
     this.notice.set(null);
     this.api
-      .book({ slotId: slot.id, customerName: this.customerName(), service: 'In-home consult' })
+      .book({ slotId: slot.id, customerName: this.customerName(), service: this.service() })
       .subscribe({
         next: () => {
           this.notice.set(`Booked ${slot.territoryName} @ ${this.fmt(slot.startUtc)}.`);
@@ -97,6 +146,10 @@ export class App implements OnInit {
       },
       error: () => this.error.set('Deposit failed.'),
     });
+  }
+
+  pct(confidence: number): number {
+    return Math.round(confidence * 100);
   }
 
   fmt(iso: string): string {
