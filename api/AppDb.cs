@@ -19,6 +19,7 @@ public class AppDb : DbContext
     public DbSet<Territory> Territories => Set<Territory>();
     public DbSet<Slot> Slots => Set<Slot>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<NpsSurvey> NpsSurveys => Set<NpsSurvey>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -30,6 +31,7 @@ public class AppDb : DbContext
         b.Entity<Territory>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
         b.Entity<Slot>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
         b.Entity<Appointment>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
+        b.Entity<NpsSurvey>().HasQueryFilter(x => x.BrandId == _tenant.BrandId);
 
         // Concurrency token for double-booking protection (see Slot.Version).
         b.Entity<Slot>().Property(x => x.Version).IsConcurrencyToken();
@@ -42,5 +44,11 @@ public class AppDb : DbContext
         b.Entity<Territory>().HasIndex(x => x.BrandId);
         b.Entity<Slot>().HasIndex(x => new { x.BrandId, x.StartUtc });
         b.Entity<Appointment>().HasIndex(x => new { x.BrandId, x.StartUtc });
+
+        // NPS: one survey per appointment (the response is the unit of truth), and
+        // a (BrandId, TerritoryId) index because the dashboards aggregate NPS per
+        // territory — the exact shape Slice D's "measured NPS" query groups on.
+        b.Entity<NpsSurvey>().HasIndex(x => x.AppointmentId).IsUnique();
+        b.Entity<NpsSurvey>().HasIndex(x => new { x.BrandId, x.TerritoryId });
     }
 }

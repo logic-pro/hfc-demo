@@ -52,9 +52,28 @@ public class Appointment                 // tenant-scoped
     public string? DepositKey { get; set; }
 }
 
+public class NpsSurvey                    // tenant-scoped; the post-service NPS response
+{
+    public int Id { get; set; }
+    public string BrandId { get; set; } = "";   // tenant key — same isolation as every other entity
+    // Denormalized from the appointment so the franchisee dashboards can aggregate
+    // NPS *by territory* in one line (a GROUP BY TerritoryId) without joining back
+    // to Appointment. This is the "territory-resolvable" guarantee Slice D rides on.
+    public int TerritoryId { get; set; }
+    public int AppointmentId { get; set; }
+    // Clean Net Promoter Score on the canonical 0–10 scale (validated at the edge).
+    // Promoter 9–10 / Passive 7–8 / Detractor 0–6 — the dashboard's NPS math is just
+    // %promoters − %detractors over this column, so it must never hold anything else.
+    public int Score { get; set; }
+    [MaxLength(1000)] public string Comment { get; set; } = "";
+    public DateTime RespondedAt { get; set; }
+}
+
 // ── DTOs (never expose entities directly; keeps the contract stable) ────────
 public record BrandDto(string Id, string Name, string Tagline);
 public record SlotDto(int Id, int TerritoryId, string TerritoryName, DateTime StartUtc, bool IsBooked);
 public record BookRequest(int SlotId, string CustomerName, string Service);
 public record AppointmentDto(int Id, int TerritoryId, DateTime StartUtc, string CustomerName, string Service, int DepositCents, bool DepositPaid);
 public record DepositRequest(int AmountCents);
+public record NpsRequest(int Score, string? Comment);
+public record NpsSurveyDto(int Id, int AppointmentId, int TerritoryId, int Score, string Comment, DateTime RespondedAt);

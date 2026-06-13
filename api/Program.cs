@@ -141,6 +141,57 @@ app.MapPost("/api/appointments/{id:int}/deposit",
         appt.CustomerName, appt.Service, appt.DepositCents, true));
 });
 
+// Record a post-service NPS response (the Durable NpsWorkflow's review-gen runs
+// off the same score). This is the row the dashboards read — so it's the source
+// of truth that flips NPS from seeded to measured. One survey per appointment;
+// a second response for the same appointment is rejected as a conflict.
+app.MapPost("/api/appointments/{id:int}/nps",
+    async (int id, NpsRequest req, AppDb db, TenantContext t) =>
+{
+    if (t.BrandId is null) return NeedTenant();
+    if (req.Score is < 0 or > 10)
+        return Results.Problem(statusCode: 400, title: "NPS score must be 0–10.");
+
+    var appt = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+    if (appt is null) return Results.NotFound();
+
+    if (await db.NpsSurveys.AnyAsync(s => s.AppointmentId == id))
+        return Results.Conflict("NPS already recorded for this appointment.");
+
+    var survey = new NpsSurvey
+    {
+        BrandId = t.BrandId!,
+        TerritoryId = appt.TerritoryId,   // denormalize for territory-level aggregation
+        AppointmentId = appt.Id,
+        Score = req.Score,
+        Comment = req.Comment ?? "",
+        RespondedAt = DateTime.UtcNow,
+    };
+    db.NpsSurveys.Add(survey);
+    try
+    {
+        await db.SaveChangesAsync();
+    }
+    catch (DbUpdateException)              // unique-index race: two responses at once
+    {
+        return Results.Conflict("NPS already recorded for this appointment.");
+    }
+    return Results.Created($"/api/appointments/{appt.Id}/nps",
+        new NpsSurveyDto(survey.Id, survey.AppointmentId, survey.TerritoryId,
+            survey.Score, survey.Comment, survey.RespondedAt));
+});
+
+// All NPS responses for the current tenant — the dashboards' measured-NPS feed.
+app.MapGet("/api/nps", async (AppDb db, TenantContext t) =>
+{
+    if (t.BrandId is null) return NeedTenant();
+    var surveys = await db.NpsSurveys.OrderBy(s => s.RespondedAt)
+        .Select(s => new NpsSurveyDto(s.Id, s.AppointmentId, s.TerritoryId,
+            s.Score, s.Comment, s.RespondedAt))
+        .ToListAsync();
+    return Results.Ok(surveys);
+});
+
 // SPA fallback: any non-API, non-file route serves index.html so Angular's
 // client-side router can take over. Excludes /api and /swagger.
 app.MapFallbackToFile("index.html");

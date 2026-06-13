@@ -41,4 +41,21 @@ chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H 'X-Tenant-Id: budget-b
 seen=$(curl -s -H "X-Tenant-Id: aussie-pet" "$B/api/appointments" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$seen" "0" "other tenant sees 0 of budget-blinds' appointments"
 
+# NPS: record a post-service response -> 201, then it shows up in the measured feed
+chk "$(code -X POST "$B/api/appointments/$AID/nps" -H 'X-Tenant-Id: budget-blinds' -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
+
+# one survey per appointment: a second response -> 409
+chk "$(code -X POST "$B/api/appointments/$AID/nps" -H 'X-Tenant-Id: budget-blinds' -H 'Content-Type: application/json' -d '{"score":8,"comment":"again"}')" "409" "duplicate NPS for same appointment -> 409"
+
+# score is validated 0–10
+chk "$(code -X POST "$B/api/appointments/$AID/nps" -H 'X-Tenant-Id: budget-blinds' -H 'Content-Type: application/json' -d '{"score":11}')" "400" "out-of-range NPS score -> 400"
+
+# the measured feed carries the clean score, territory-resolved
+score=$(curl -s -H "X-Tenant-Id: budget-blinds" "$B/api/nps" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(s['score'] for s in d if s['appointmentId']==$AID))")
+chk "$score" "9" "NPS feed returns the recorded score"
+
+# cross-tenant isolation also covers NPS
+nseen=$(curl -s -H "X-Tenant-Id: aussie-pet" "$B/api/nps" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
+chk "$nseen" "0" "other tenant sees 0 of budget-blinds' NPS responses"
+
 echo "All $pass checks passed."
