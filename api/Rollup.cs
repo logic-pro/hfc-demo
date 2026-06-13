@@ -180,6 +180,7 @@ public static class Rollup
                 BrandId = x.Brand.Num,
                 RegionId = x.Terr.RegionId ?? 0,
                 FranchiseeId = franchiseeNum.GetValueOrDefault(x.Terr.FranchiseeId),
+                FranchiseeSlug = x.Terr.FranchiseeId,   // operational slug → Bravo's RBAC lens (CONTRACT §1 v1.2)
                 PeriodId = x.PeriodId,
                 PeriodStart = x.PeriodStart,
                 PeriodEnd = x.PeriodEnd,

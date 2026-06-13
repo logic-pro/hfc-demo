@@ -19,6 +19,14 @@ public class TerritoryPeriodSummary
     public int BrandId { get; set; }              // Brand.Num, denormalized for fast filter
     public int RegionId { get; set; }             // denormalized
     public int FranchiseeId { get; set; }
+    // Operational franchisee SLUG (Franchisee.Id, e.g. "budget-blinds-irvine"),
+    // denormalized alongside the numeric FranchiseeId. CONTRACT §1 (v1.2, additive).
+    // The bridge for Bravo's RBAC franchisee lens: Slice A's token claim carries the
+    // slug (HfcClaims.FranchiseeId), while the read model keys franchisee by INTEGER.
+    // Carrying the slug here lets the scope filter match claim→row slug-to-slug
+    // (and map on to the numeric FranchiseeId) instead of fail-closing. "" for any
+    // row whose franchisee has no slug (none in the demo set).
+    public string FranchiseeSlug { get; set; } = "";
     public int PeriodId { get; set; }             // YYYYMM (composite key part 2)
     public DateTime PeriodStart { get; set; }
     public DateTime PeriodEnd { get; set; }
