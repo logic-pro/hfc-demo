@@ -1,0 +1,76 @@
+:host { display: block; }
+
+.dash {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Title ───────────────────────────────────────────────────────────────── */
+.dash-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.dash-title { display: flex; flex-direction: column; gap: 7px; }
+.dash-title h1 {
+  font-size: 28px; font-weight: 600; letter-spacing: -0.02em;
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.dash-period .pill { font-size: 12px; }
+
+/* ── Hero grid ───────────────────────────────────────────────────────────── */
+.hero {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+}
+.hero > * { animation: rise var(--t-slow) var(--ease) both; }
+/* staggered entrance — the "first 3 seconds" settle */
+.hero > *:nth-child(1) { animation-delay: 20ms; }
+.hero > *:nth-child(2) { animation-delay: 70ms; }
+.hero > *:nth-child(3) { animation-delay: 120ms; }
+.hero > *:nth-child(4) { animation-delay: 170ms; }
+.hero > *:nth-child(5) { animation-delay: 220ms; }
+.hero > *:nth-child(6) { animation-delay: 270ms; }
+.hero > *:nth-child(7) { animation-delay: 320ms; }
+.hero > *:nth-child(8) { animation-delay: 370ms; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ── Skeleton tiles ──────────────────────────────────────────────────────── */
+.skeleton { padding: 16px 18px; min-height: 158px; display: flex; flex-direction: column; gap: 14px; }
+.sk-line, .sk-value { border-radius: 6px; background: linear-gradient(90deg, var(--bg-3), var(--bg-2), var(--bg-3)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.sk-line { height: 10px; } .w40 { width: 40%; } .w60 { width: 60%; }
+.sk-value { height: 38px; width: 70%; margin-top: 6px; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ── Data notes ──────────────────────────────────────────────────────────── */
+.notes { display: flex; flex-direction: column; gap: 8px; }
+.note {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 11px 14px; border-radius: var(--r-md);
+  font-size: 12.5px; color: var(--ink-2);
+  border: 1px solid var(--surface-line);
+  background: rgba(255,255,255,.015);
+}
+.note[data-sev='warning'] { border-color: rgba(255,159,69,.28); background: rgba(255,159,69,.05); }
+.note[data-sev='critical'] { border-color: rgba(255,84,112,.3); background: rgba(255,84,112,.05); }
+.note-icon {
+  flex: none; width: 17px; height: 17px; border-radius: 50%;
+  display: grid; place-items: center; margin-top: 1px;
+  font-size: 11px; font-style: italic; font-weight: 700; font-family: var(--font-display);
+  background: var(--bg-3); color: var(--ink-2);
+}
+.note[data-sev='warning'] .note-icon { background: rgba(255,159,69,.18); color: var(--health-warning); }
+
+/* ── Banner ──────────────────────────────────────────────────────────────── */
+.banner { padding: 12px 16px; border-radius: var(--r-md); font-size: 13px; }
+.banner.error { background: rgba(255,84,112,.08); border: 1px solid rgba(255,84,112,.3); color: #ffd2da; }
+
+/* ── Temporary placeholders ──────────────────────────────────────────────── */
+.placeholder-grid { display: grid; grid-template-columns: 2fr 1fr; gap: var(--gap); }
+.placeholder { padding: 28px; min-height: 180px; display: flex; flex-direction: column; gap: 8px; }
+.placeholder p { color: var(--ink-3); margin: 0; }
+
+@media (max-width: 1100px) { .hero { grid-template-columns: repeat(2, 1fr); } .placeholder-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .hero { grid-template-columns: 1fr; } .dash { padding: 20px 14px 48px; } }

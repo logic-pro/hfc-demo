@@ -1,0 +1,76 @@
+:host { display: block; }
+
+.tile {
+  --accent-line: var(--ink-3);
+  padding: 16px 18px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 158px;
+  overflow: hidden;
+  transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+/* Health/trend accent runs as a thin left rule — the "look here" cue. */
+.tile::after {
+  content: '';
+  position: absolute; left: 0; top: 14px; bottom: 14px;
+  width: 3px; border-radius: 3px;
+  background: var(--accent-line);
+  box-shadow: 0 0 14px -2px var(--accent-line);
+  opacity: .9;
+}
+.tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--ink-4);
+}
+
+.tile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.tile-head .eyebrow { line-height: 1.35; max-width: 62%; }
+
+/* ── Provenance badge (the honesty cue, on the hero row) ──────────────────── */
+.prov {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 999px;
+  border: 1px solid var(--surface-line);
+  color: var(--ink-2);
+  cursor: default;
+}
+.prov-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); }
+.prov[data-prov='measured'] { color: var(--prov-measured); border-color: rgba(95,227,192,.32); background: rgba(95,227,192,.06); }
+.prov[data-prov='measured'] .prov-dot { background: var(--prov-measured); }
+.prov[data-prov='reported'] { color: var(--prov-reported); border-color: rgba(127,168,255,.32); background: rgba(127,168,255,.06); }
+.prov[data-prov='reported'] .prov-dot { background: var(--prov-reported); }
+.prov[data-prov='seeded'] { color: var(--prov-seeded); border-color: rgba(185,140,255,.30); background: rgba(185,140,255,.06); }
+.prov[data-prov='seeded'] .prov-dot { background: var(--prov-seeded); }
+
+/* ── The hero number ─────────────────────────────────────────────────────── */
+.tile-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink-0);
+  margin-top: 2px;
+}
+
+/* ── Foot: trend + sparkline ─────────────────────────────────────────────── */
+.tile-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: auto; }
+.trend {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  font-size: 13px; font-weight: 600;
+}
+.trend[data-dir='good'] { color: var(--health-strong); }
+.trend[data-dir='bad'] { color: var(--health-warning); }
+.trend[data-dir='flat'] { color: var(--ink-3); }
+.trend .arrow { font-size: 9px; }
+.trend-cap { font-size: 10px; font-weight: 500; color: var(--ink-3); letter-spacing: .04em; }
+.tile-spark { width: 116px; height: 32px; opacity: .95; }
+
+/* ── Meta row ────────────────────────────────────────────────────────────── */
+.tile-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 9px; border-top: 1px solid var(--surface-line); }
+.asof { font-size: 11px; color: var(--ink-3); }
+.conf { display: inline-flex; gap: 3px; }
+.conf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-4); }
+.conf-dot.lit { background: var(--ink-2); }

@@ -1,18 +1,25 @@
 import { Routes } from '@angular/router';
 import { App } from './app';
 
-// Two surfaces, two auth scopes:
-//   ''          the franchisee-scoped booking demo (App, untouched)
-//   'corporate' the read-down executive dashboard (lazy; corporate-scoped)
-// The corporate route is lazily loaded so its (future) chart library never
-// weighs down the booking SPA.
+// One shell, three surfaces, two auth scopes:
+//   /booking    franchisee-scoped booking demo (App, untouched — Slice A/B)
+//   /corporate  read-down franchisor executive dashboard (lazy; corporate scope)
+//   /dashboard  franchisee operator dashboard (Slice D — placeholder until merged)
+// The data-heavy surfaces are lazy standalone components — each its own chunk so
+// the dashboard viz never weighs down the booking SPA.
 export const routes: Routes = [
-  { path: '', component: App, title: 'HFC Scheduling' },
+  { path: '', redirectTo: 'corporate', pathMatch: 'full' },
+  { path: 'booking', component: App, title: 'HFC · Scheduling' },
   {
     path: 'corporate',
-    title: 'HFC Executive Dashboard',
+    title: 'HFC · Network Operations Command Center',
+    loadComponent: () => import('./dashboard/dashboard').then((m) => m.DashboardComponent),
+  },
+  {
+    path: 'dashboard',
+    title: 'HFC · Franchisee Operations',
     loadComponent: () =>
-      import('./corporate/portfolio-page.component').then((m) => m.PortfolioPageComponent),
+      import('./dashboard-placeholder').then((m) => m.DashboardPlaceholderComponent),
   },
   { path: '**', redirectTo: '' },
 ];

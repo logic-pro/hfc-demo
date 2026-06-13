@@ -1,0 +1,53 @@
+<div class="dash">
+  <!-- ── Title row ────────────────────────────────────────────────────────── -->
+  <section class="dash-head">
+    <div class="dash-title">
+      <span class="eyebrow">Franchisor Network · Portfolio View</span>
+      <h1>Network Operations Command Center</h1>
+    </div>
+    <div class="dash-period">
+      @if (period(); as p) {
+        <span class="pill">{{ p.label }} · LTM {{ p.trailingWindowMonths }}mo</span>
+      }
+    </div>
+  </section>
+
+  @if (error()) {
+    <div class="banner error">{{ error() }}</div>
+  }
+
+  <!-- ── Hero-8 vital signs (D11) ─────────────────────────────────────────── -->
+  <section class="hero" aria-label="Network vital signs">
+    @if (loading()) {
+      @for (s of skeletons; track $index) {
+        <div class="tile card skeleton" aria-hidden="true">
+          <div class="sk-line w40"></div>
+          <div class="sk-value"></div>
+          <div class="sk-line w60"></div>
+        </div>
+      }
+    } @else {
+      @for (v of vitalSigns(); track v.metricKey; let i = $index) {
+        <ec-kpi-tile [data]="v" [delayMs]="i * 60" />
+      }
+    }
+  </section>
+
+  <!-- ── Data-honesty note (full D16 visual lands in its own slice) ───────── -->
+  @if (dataNotes().length) {
+    <section class="notes">
+      @for (n of dataNotes(); track n.message) {
+        <div class="note" [attr.data-sev]="n.severity">
+          <span class="note-icon" aria-hidden="true">i</span>
+          <span>{{ n.message }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  <!-- Placeholders for the sections built in later slices. -->
+  <section class="placeholder-grid">
+    <div class="card placeholder"><span class="eyebrow">Territory Health Map</span><p>D12 — next</p></div>
+    <div class="card placeholder"><span class="eyebrow">Performance Distribution</span><p>D13</p></div>
+  </section>
+</div>

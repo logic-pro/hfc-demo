@@ -11,8 +11,10 @@ screen."* Generic Material/Bootstrap slop is a failure condition.
 3. `docs/tech/angular.md` — standalone components, signals, RxJS, control flow (the stack you're matching; ADR).
 4. `web/src/app/` — existing Angular 20 app (api.service.ts, models.ts, app.* ) to extend.
 
-## Invoke this skill
-`franchise-ceo-dashboard-strategist` (hero-8, drill path, anti-vanity — keeps the
+## Invoke these skills
+`frontend-bi-dashboard-architect` (your PRIMARY — Angular + Tailwind dashboards as
+decision interfaces: component architecture, view-model contracts, states, dataviz)
+and `franchise-ceo-dashboard-strategist` (hero-8, drill path, anti-vanity — keeps the
 *content* executive-grade while you make the *form* stunning).
 
 ---
