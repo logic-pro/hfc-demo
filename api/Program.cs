@@ -141,6 +141,25 @@ app.MapPost("/api/appointments/{id:int}/deposit",
         appt.CustomerName, appt.Service, appt.DepositCents, true));
 });
 
+// ── Franchisee Operations dashboard read-model (Slice D) ─────────────────────
+// Pre-shaped read model; the SPA only formats/filters/drills. Tenant-scoped by
+// the EF global query filter. See DashboardReadModel + web/.../API-CONTRACT.md.
+app.MapGet("/api/dashboard", async (string? period, int? territoryId, AppDb db, TenantContext t) =>
+{
+    if (t.BrandId is null) return NeedTenant();
+    var vm = await DashboardReadModel.BuildAsync(db, t, period ?? "MTD", territoryId, DateTime.UtcNow);
+    return Results.Ok(vm);
+});
+
+// Territories in the franchisee's brand — populates the dashboard filter.
+app.MapGet("/api/dashboard/territories", async (AppDb db, TenantContext t) =>
+{
+    if (t.BrandId is null) return NeedTenant();
+    var list = await db.Territories.OrderBy(x => x.Name)
+        .Select(x => new TerritoryRef(x.Id, x.Name)).ToListAsync();
+    return Results.Ok(list);
+});
+
 // SPA fallback: any non-API, non-file route serves index.html so Angular's
 // client-side router can take over. Excludes /api and /swagger.
 app.MapFallbackToFile("index.html");
