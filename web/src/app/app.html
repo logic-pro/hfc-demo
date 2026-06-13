@@ -4,16 +4,17 @@
 </header>
 
 <main>
-  <!-- Tenant picker: selecting a brand sets X-Tenant-Id for every call -->
+  <!-- Tenant picker: selecting a franchisee mints a scoped token (login stand-in).
+       Two franchisees per brand show the isolation boundary: same brand, separate data. -->
   <section class="picker">
-    <label>Acting as brand (tenant):</label>
+    <label>Sign in as franchisee (tenant boundary):</label>
     <div class="brand-chips">
-      @for (b of brands(); track b.id) {
+      @for (f of franchisees(); track f.id) {
         <button
           class="chip"
-          [class.active]="b.id === selectedBrandId()"
-          (click)="selectBrand(b.id)">
-          {{ b.name }}
+          [class.active]="f.id === selectedFranchiseeId()"
+          (click)="selectFranchisee(f)">
+          {{ f.brandName }} · {{ f.region }}
         </button>
       }
     </div>
@@ -22,15 +23,87 @@
   @if (error()) { <div class="banner error">{{ error() }}</div> }
   @if (notice()) { <div class="banner notice">{{ notice() }}</div> }
 
-  @if (selectedBrand(); as brand) {
+  @if (selectedFranchisee(); as f) {
     <div class="context">
-      <h2>{{ brand.name }}</h2>
-      <p>{{ brand.tagline }}</p>
+      <h2>{{ f.name }}</h2>
+      <p>{{ f.brandName }} — {{ f.region }} territory</p>
       <label class="cust">
         Customer:
         <input type="text" [ngModel]="customerName()" (ngModelChange)="customerName.set($event)" />
       </label>
     </div>
+
+    <!-- AI-assisted structured intake: a sentence becomes a reviewable booking -->
+    <section class="intake">
+      <div class="intake-head">
+        <h3>AI-assisted intake</h3>
+        <span class="muted">Describe the job in plain words — we extract the fields for you to verify.</span>
+      </div>
+      <div class="intake-row">
+        <textarea
+          rows="2"
+          placeholder="e.g. Hi, this is Dana in Tustin — my water heater burst and flooded the garage, need someone ASAP, mornings are best."
+          [ngModel]="intakeText()"
+          (ngModelChange)="intakeText.set($event)"></textarea>
+        <button class="btn primary" [disabled]="parsing() || !intakeText().trim()" (click)="parseIntake()">
+          {{ parsing() ? 'Reading…' : 'Draft with AI' }}
+        </button>
+      </div>
+
+      @if (draft(); as d) {
+        <div class="draft">
+          <div class="draft-head">
+            <strong>Review the extracted intake</strong>
+            <span class="src-badge" [class.ai]="d.usedAi" [class.heuristic]="!d.usedAi">
+              {{ d.usedAi ? (d.model || 'AI') : 'local heuristic' }}
+              · {{ pct(d.confidence) }}% conf
+              @if (d.usedAi && d.latencyMs) { · {{ d.latencyMs }}ms }
+            </span>
+          </div>
+          @if (d.notice) { <div class="banner warn">{{ d.notice }}</div> }
+
+          <div class="fields">
+            <label>
+              <span>Customer</span>
+              <input type="text" [ngModel]="d.customerName ?? ''" (ngModelChange)="patchDraft('customerName', $event)" placeholder="—" />
+            </label>
+            <label>
+              <span>Service</span>
+              <input type="text" [ngModel]="d.service" (ngModelChange)="patchDraft('service', $event)" />
+            </label>
+            <label>
+              <span>Urgency</span>
+              <select [ngModel]="d.urgency" (ngModelChange)="patchDraft('urgency', $event)">
+                @for (u of urgencyOptions; track u) { <option [value]="u">{{ u }}</option> }
+              </select>
+            </label>
+            <label>
+              <span>Time of day</span>
+              <select [ngModel]="d.preferredTimeOfDay" (ngModelChange)="patchDraft('preferredTimeOfDay', $event)">
+                @for (t of timeOptions; track t) { <option [value]="t">{{ t }}</option> }
+              </select>
+            </label>
+            <label>
+              <span>Preferred date</span>
+              <input type="text" [ngModel]="d.preferredDate ?? ''" (ngModelChange)="patchDraft('preferredDate', $event)" placeholder="—" />
+            </label>
+            <label>
+              <span>Area</span>
+              <input type="text" [ngModel]="d.territoryHint ?? ''" (ngModelChange)="patchDraft('territoryHint', $event)" placeholder="—" />
+            </label>
+            <label class="wide">
+              <span>Notes</span>
+              <input type="text" [ngModel]="d.notes" (ngModelChange)="patchDraft('notes', $event)" placeholder="—" />
+            </label>
+          </div>
+
+          <div class="draft-actions">
+            <button class="btn primary" (click)="useDraft()">Use this → book a slot</button>
+            <button class="btn" (click)="discardDraft()">Discard</button>
+          </div>
+        </div>
+      }
+    </section>
 
     <div class="columns">
       <section class="col">
@@ -66,6 +139,6 @@
       </section>
     </div>
   } @else {
-    <p class="hint">Pick a brand above to load its tenant-isolated schedule.</p>
+    <p class="hint">Sign in as a franchisee above to load its tenant-isolated schedule.</p>
   }
 </main>
