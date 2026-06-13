@@ -67,6 +67,10 @@
 .banner { padding: 12px 16px; border-radius: var(--r-md); font-size: 13px; }
 .banner.error { background: rgba(255,84,112,.08); border: 1px solid rgba(255,84,112,.3); color: #ffd2da; }
 
+/* ── Map skeleton ────────────────────────────────────────────────────────── */
+.map-skeleton { padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+.sk-map { width: 100%; aspect-ratio: 1000 / 537; border-radius: var(--r-md); background: linear-gradient(90deg, var(--bg-3), var(--bg-2), var(--bg-3)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+
 /* ── Temporary placeholders ──────────────────────────────────────────────── */
 .placeholder-grid { display: grid; grid-template-columns: 2fr 1fr; gap: var(--gap); }
 .placeholder { padding: 28px; min-height: 180px; display: flex; flex-direction: column; gap: 8px; }

@@ -45,9 +45,19 @@
     </section>
   }
 
-  <!-- Placeholders for the sections built in later slices. -->
+  <!-- ── Territory health map (D12) ───────────────────────────────────────── -->
+  @if (mapLoading()) {
+    <div class="card map-skeleton">
+      <div class="sk-line w40"></div>
+      <div class="sk-map"></div>
+    </div>
+  } @else {
+    <ec-territory-map [territories]="territories()" (select)="selectTerritory($event)" />
+  }
+
+  <!-- Placeholder for sections built in later slices. -->
   <section class="placeholder-grid">
-    <div class="card placeholder"><span class="eyebrow">Territory Health Map</span><p>D12 — next</p></div>
     <div class="card placeholder"><span class="eyebrow">Performance Distribution</span><p>D13</p></div>
+    <div class="card placeholder"><span class="eyebrow">Watchlist</span><p>D15</p></div>
   </section>
 </div>
