@@ -95,7 +95,7 @@ interface GridTick { value: number; y: number; }
                 [attr.y]="mounted() ? b.y : baseY"
                 [attr.height]="mounted() ? b.h : 0"
                 [attr.fill]="b.color"
-                [style.transition-delay.ms]="b.i * 70"
+                [style.transition-delay.ms]="settled() ? 0 : b.i * 70"
               />
               <text
                 class="bar-count tnum"
@@ -166,6 +166,9 @@ export class DistributionComponent implements AfterViewInit {
   private readonly _brand = signal<number | null>(null);
   private readonly _userBand = signal<HealthBand | null>(null);
   readonly mounted = signal(false);
+  // Once the entrance grow-in has played, drop the per-bar stagger so data updates
+  // (re-bucketing on brand select) morph together rather than shimmering in late.
+  readonly settled = signal(false);
 
   readonly colW = (this.W - this.AX - this.PADR) / BANDS.length;
 
@@ -248,7 +251,11 @@ export class DistributionComponent implements AfterViewInit {
   });
 
   ngAfterViewInit(): void {
-    requestAnimationFrame(() => requestAnimationFrame(() => this.mounted.set(true)));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      this.mounted.set(true);
+      // Entrance ≈ 640ms transition + the last bar's stagger; settle just after.
+      setTimeout(() => this.settled.set(true), 700 + (BANDS.length - 1) * 70);
+    }));
   }
 
   pick(b: HealthBand): void { this._userBand.set(b); }

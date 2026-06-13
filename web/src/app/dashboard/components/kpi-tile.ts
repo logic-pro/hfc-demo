@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
-import { VitalSign } from '../dashboard.models';
+import { ProvenanceType, VitalSign } from '../dashboard.models';
 import { CountUpDirective } from '../ui/count-up.directive';
 import { SparklineComponent } from '../ui/sparkline';
 import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
@@ -13,7 +13,14 @@ import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
   imports: [CountUpDirective, SparklineComponent],
   template: `
     @if (vital(); as v) {
-      <article class="tile card" [attr.data-prov]="v.provenanceType" [style.--accent-line]="lineColor()">
+      <article
+        class="tile card"
+        [attr.data-prov]="v.provenanceType"
+        [class.plane-lit]="planeState() === 'lit'"
+        [class.plane-dim]="planeState() === 'dim'"
+        [style.--accent-line]="lineColor()"
+        [style.--plane-color]="planeColor()"
+      >
         <header class="tile-head">
           <span class="eyebrow">{{ v.label }}</span>
           <span class="prov" [attr.data-prov]="v.provenanceType" [title]="provTitle()">
@@ -52,8 +59,23 @@ import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
 export class KpiTileComponent {
   @Input({ required: true }) set data(v: VitalSign) { this._v.set(v); }
   @Input() delayMs = 0;
+  // D16: the provenance plane the user is highlighting (null = show all equally).
+  // This tile lights when it matches and dims when it doesn't — the "re-skin".
+  @Input() set activePlane(p: ProvenanceType | null) { this._plane.set(p); }
   private readonly _v = signal<VitalSign | null>(null);
+  private readonly _plane = signal<ProvenanceType | null>(null);
   readonly vital = this._v;
+
+  readonly planeState = computed<'lit' | 'dim' | 'off'>(() => {
+    const plane = this._plane();
+    if (plane === null) return 'off';
+    return this._v()!.provenanceType === plane ? 'lit' : 'dim';
+  });
+
+  // When lit, the tile glows in its own provenance colour (= the active plane).
+  readonly planeColor = computed(() =>
+    this.planeState() === 'lit' ? `var(--prov-${this._v()!.provenanceType})` : 'transparent',
+  );
 
   // Higher-is-better for all hero metrics EXCEPT these (up = bad).
   private static readonly LOWER_IS_BETTER = new Set(['territories_at_risk', 'no_show_rate']);

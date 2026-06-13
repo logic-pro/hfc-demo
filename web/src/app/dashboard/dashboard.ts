@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DashboardDataService } from './dashboard-data.service';
-import { CorporateDashboard, TerritoryHealthScore, TerritoryListItem } from './dashboard.models';
+import { CorporateDashboard, ProvenanceType, TerritoryHealthScore, TerritoryListItem } from './dashboard.models';
 import { KpiTileComponent } from './components/kpi-tile';
 import { TerritoryMapComponent } from './components/territory-map';
 import { ScorecardComponent } from './components/scorecard';
 import { DistributionComponent } from './components/distribution';
 import { BrandTableComponent } from './components/brand-table';
+import { ProvenanceComponent } from './components/provenance';
 
 // The executive landing surface. v1 wires the hero-8 (D11); the map, distribution,
 // provenance, scorecard and watchlist sections land in subsequent slices. Loads
@@ -13,7 +14,10 @@ import { BrandTableComponent } from './components/brand-table';
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [KpiTileComponent, TerritoryMapComponent, ScorecardComponent, DistributionComponent, BrandTableComponent],
+  imports: [
+    KpiTileComponent, TerritoryMapComponent, ScorecardComponent,
+    DistributionComponent, BrandTableComponent, ProvenanceComponent,
+  ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -40,6 +44,10 @@ export class DashboardComponent {
   // D13 drill: selecting a brand row in the comparison table re-buckets the
   // distribution histogram to that brand. Clicking the same brand again clears it.
   readonly selectedBrandId = signal<number | null>(null);
+
+  // D16: the provenance plane the user is highlighting. Drives the hero re-skin —
+  // the provenance panel and every kpi-tile read this one signal. null = show all.
+  readonly provenanceFilter = signal<ProvenanceType | null>(null);
   // Hero skeletons: render 8 placeholders so layout doesn't reflow on load.
   readonly skeletons = Array.from({ length: 8 });
 
@@ -71,5 +79,9 @@ export class DashboardComponent {
 
   selectBrand(brandId: number): void {
     this.selectedBrandId.update((cur) => (cur === brandId ? null : brandId));
+  }
+
+  setProvenancePlane(plane: ProvenanceType | null): void {
+    this.provenanceFilter.set(plane);
   }
 }

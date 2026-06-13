@@ -28,21 +28,19 @@
       }
     } @else {
       @for (v of vitalSigns(); track v.metricKey; let i = $index) {
-        <ec-kpi-tile [data]="v" [delayMs]="i * 60" />
+        <ec-kpi-tile [data]="v" [delayMs]="i * 60" [activePlane]="provenanceFilter()" />
       }
     }
   </section>
 
-  <!-- ── Data-honesty note (full D16 visual lands in its own slice) ───────── -->
-  @if (dataNotes().length) {
-    <section class="notes">
-      @for (n of dataNotes(); track n.message) {
-        <div class="note" [attr.data-sev]="n.severity">
-          <span class="note-icon" aria-hidden="true">i</span>
-          <span>{{ n.message }}</span>
-        </div>
-      }
-    </section>
+  <!-- ── Provenance / data-quality visual (D16) ───────────────────────────── -->
+  @if (!loading()) {
+    <ec-provenance
+      [vitalSigns]="vitalSigns()"
+      [notes]="dataNotes()"
+      [selected]="provenanceFilter()"
+      (planeChange)="setProvenancePlane($event)"
+    />
   }
 
   <!-- ── Territory health map (D12) ───────────────────────────────────────── -->

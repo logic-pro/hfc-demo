@@ -2,14 +2,28 @@
 
 .tile {
   --accent-line: var(--ink-3);
+  --plane-color: transparent;
   padding: 16px 18px 13px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 158px;
   overflow: hidden;
-  transition: transform var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+  transition:
+    transform var(--t-base) var(--ease),
+    border-color var(--t-base) var(--ease),
+    box-shadow var(--t-base) var(--ease),
+    opacity var(--t-base) ease,
+    filter var(--t-base) ease;
 }
+
+/* ── D16 provenance re-skin: lit when it matches the active plane, dim when not ── */
+.tile.plane-lit {
+  border-color: color-mix(in srgb, var(--plane-color) 55%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--plane-color) 32%, transparent), 0 8px 30px -16px var(--plane-color);
+}
+.tile.plane-dim { opacity: .34; filter: saturate(.45); }
+.tile.plane-dim:hover { opacity: .6; }
 /* Health/trend accent runs as a thin left rule — the "look here" cue. */
 .tile::after {
   content: '';
