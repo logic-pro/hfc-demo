@@ -12,7 +12,7 @@
 | **slice-a-auth-tenancy** | `slice-a-auth-tenancy` | Security foundation | **Active — MUST, merge first** | Move tenant from `X-Tenant-Id` header → verified token claim; two-axis tenancy (`franchiseeId` key, `brandId` grouping); integration + concurrency tests |
 | **slice-b-ai-intake** | `slice-b-ai-intake` | AI intake | **Active — independent** | Free-text → typed intake schema via structured outputs/tool-calling; human-verifiable; wire into booking |
 | **slice-c-nps-pipeline** | `slice-c-nps-pipeline` | Eventing/NPS | **Active — feeds dashboard** | Post-service NPS → review-gen Durable orchestration; `NpsSurvey{appointmentId,score,...}`; verify finalized + expired paths |
-| **slice-d-franchisee-dashboard** | `slice-d-franchisee-dashboard` | Old dashboard | **SUPERSEDED — harvest then retire** | Inventory reusable bits → `SALVAGE.md` for Charlie; no new feature work |
+| **slice-d-franchisee-dashboard** | `slice-d-franchisee-dashboard` | Franchisee **Operations** dashboard (operator view) | **Active — scaffold built** | Mock-first Angular dashboard committed + `/dashboard` route serving; next: backend `GET /api/dashboard`, flip `USE_MOCK=false`, wire drawer actions, e2e screenshot. Distinct from the corporate CEO dashboard (alpha/bravo/charlie). |
 | **alpha** | `alpha` | Data & read-model | **Active** | Schema + believable seed + `territory_period_summary` + `RecomputeRollup` + health score + watchlist rows (D0–D5) |
 | **bravo** | `bravo` | Dashboard API | **Active** | Read-only projection endpoints to CONTRACT §2 DTOs + RBAC scope filter (D6–D10) |
 | **charlie** | `charlie` | Angular UI (showcase) | **Active — the jaw-drop** | "Operations Command Center" exec UI: hero tiles, health map, radial scorecard, provenance visual (D11–D18) |
