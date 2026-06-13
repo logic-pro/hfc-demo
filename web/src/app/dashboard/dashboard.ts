@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DashboardDataService } from './dashboard-data.service';
-import { CorporateDashboard, ProvenanceType, TerritoryHealthScore, TerritoryListItem } from './dashboard.models';
+import {
+  CorporateDashboard, ProvenanceType, TerritoryHealthScore, TerritoryListItem, WatchlistFlag,
+} from './dashboard.models';
 import { KpiTileComponent } from './components/kpi-tile';
 import { TerritoryMapComponent } from './components/territory-map';
 import { ScorecardComponent } from './components/scorecard';
 import { DistributionComponent } from './components/distribution';
 import { BrandTableComponent } from './components/brand-table';
 import { ProvenanceComponent } from './components/provenance';
+import { WatchlistComponent } from './components/watchlist';
 
 // The executive landing surface. v1 wires the hero-8 (D11); the map, distribution,
 // provenance, scorecard and watchlist sections land in subsequent slices. Loads
@@ -16,7 +19,7 @@ import { ProvenanceComponent } from './components/provenance';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     KpiTileComponent, TerritoryMapComponent, ScorecardComponent,
-    DistributionComponent, BrandTableComponent, ProvenanceComponent,
+    DistributionComponent, BrandTableComponent, ProvenanceComponent, WatchlistComponent,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
@@ -26,8 +29,10 @@ export class DashboardComponent {
 
   readonly corporate = signal<CorporateDashboard | null>(null);
   readonly territories = signal<TerritoryListItem[]>([]);
+  readonly watchlist = signal<WatchlistFlag[]>([]);
   readonly loading = signal(true);
   readonly mapLoading = signal(true);
+  readonly watchlistLoading = signal(true);
   readonly error = signal<string | null>(null);
 
   // Drill target — set by clicking a map dot / table row; opens the scorecard (D14).
@@ -61,13 +66,22 @@ export class DashboardComponent {
       next: (r) => { this.territories.set(r.items); this.mapLoading.set(false); },
       error: () => { this.mapLoading.set(false); },
     });
+    this.data.watchlist().subscribe({
+      next: (w) => { this.watchlist.set(w.items); this.watchlistLoading.set(false); },
+      error: () => { this.watchlistLoading.set(false); },
+    });
   }
 
-  selectTerritory(t: TerritoryListItem): void {
-    this.selectedTerritoryId.set(t.territoryId);
+  // Map + distribution emit a full territory; the watchlist emits just an id —
+  // both converge on one drill so the scorecard is the single explainable surface.
+  selectTerritory(t: TerritoryListItem): void { this.openTerritory(t.territoryId); }
+  selectTerritoryId(territoryId: number): void { this.openTerritory(territoryId); }
+
+  private openTerritory(territoryId: number): void {
+    this.selectedTerritoryId.set(territoryId);
     this.scoreData.set(null);
     this.scoreLoading.set(true);
-    this.data.healthScore(t.territoryId).subscribe({
+    this.data.healthScore(territoryId).subscribe({
       next: (s) => { this.scoreData.set(s); this.scoreLoading.set(false); },
       error: () => { this.scoreLoading.set(false); },
     });

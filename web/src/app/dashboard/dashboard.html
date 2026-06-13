@@ -69,10 +69,12 @@
     </section>
   }
 
-  <!-- Placeholder for sections built in later slices. -->
-  <section class="placeholder-grid">
-    <div class="card placeholder"><span class="eyebrow">Watchlist</span><p>D15</p></div>
-  </section>
+  <!-- ── Watchlist action queue (D15) ─────────────────────────────────────── -->
+  <ec-watchlist
+    [flags]="watchlist()"
+    [loading]="watchlistLoading()"
+    (select)="selectTerritoryId($event)"
+  />
 </div>
 
 <!-- ── Territory scorecard drawer (D14) ──────────────────────────────────────── -->
