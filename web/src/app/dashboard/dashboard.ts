@@ -4,6 +4,8 @@ import { CorporateDashboard, TerritoryHealthScore, TerritoryListItem } from './d
 import { KpiTileComponent } from './components/kpi-tile';
 import { TerritoryMapComponent } from './components/territory-map';
 import { ScorecardComponent } from './components/scorecard';
+import { DistributionComponent } from './components/distribution';
+import { BrandTableComponent } from './components/brand-table';
 
 // The executive landing surface. v1 wires the hero-8 (D11); the map, distribution,
 // provenance, scorecard and watchlist sections land in subsequent slices. Loads
@@ -11,7 +13,7 @@ import { ScorecardComponent } from './components/scorecard';
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [KpiTileComponent, TerritoryMapComponent, ScorecardComponent],
+  imports: [KpiTileComponent, TerritoryMapComponent, ScorecardComponent, DistributionComponent, BrandTableComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -31,8 +33,13 @@ export class DashboardComponent {
   readonly scorecardOpen = computed(() => this.selectedTerritoryId() !== null);
 
   readonly vitalSigns = computed(() => this.corporate()?.vitalSigns ?? []);
+  readonly brandComparison = computed(() => this.corporate()?.brandComparison ?? []);
   readonly dataNotes = computed(() => this.corporate()?.dataNotes ?? []);
   readonly period = computed(() => this.corporate()?.period ?? null);
+
+  // D13 drill: selecting a brand row in the comparison table re-buckets the
+  // distribution histogram to that brand. Clicking the same brand again clears it.
+  readonly selectedBrandId = signal<number | null>(null);
   // Hero skeletons: render 8 placeholders so layout doesn't reflow on load.
   readonly skeletons = Array.from({ length: 8 });
 
@@ -60,5 +67,9 @@ export class DashboardComponent {
 
   closeScorecard(): void {
     this.selectedTerritoryId.set(null);
+  }
+
+  selectBrand(brandId: number): void {
+    this.selectedBrandId.update((cur) => (cur === brandId ? null : brandId));
   }
 }

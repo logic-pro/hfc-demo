@@ -55,9 +55,24 @@
     <ec-territory-map [territories]="territories()" (select)="selectTerritory($event)" />
   }
 
+  <!-- ── Distribution + brand comparison (D13) ────────────────────────────── -->
+  @if (!loading()) {
+    <section class="dist-grid" aria-label="Performance distribution and brand comparison">
+      <ec-distribution
+        [territories]="territories()"
+        [brandId]="selectedBrandId()"
+        (select)="selectTerritory($event)"
+      />
+      <ec-brand-table
+        [brands]="brandComparison()"
+        [selectedBrandId]="selectedBrandId()"
+        (selectBrand)="selectBrand($event)"
+      />
+    </section>
+  }
+
   <!-- Placeholder for sections built in later slices. -->
   <section class="placeholder-grid">
-    <div class="card placeholder"><span class="eyebrow">Performance Distribution</span><p>D13</p></div>
     <div class="card placeholder"><span class="eyebrow">Watchlist</span><p>D15</p></div>
   </section>
 </div>

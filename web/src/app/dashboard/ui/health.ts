@@ -30,6 +30,29 @@ export const healthColor = (score: number): string => HEALTH_HEX[band(score)];
 
 // CSS var token for a band — lets templates color via the shared palette.
 export const healthVar = (score: number): string => `var(--health-${band(score)})`;
+export const bandHex = (b: HealthBand): string => HEALTH_HEX[b];
+export const bandVar = (b: HealthBand): string => `var(--health-${b})`;
+
+// Bands low→high — the x-axis order for the distribution histogram. Worst on the
+// left so the eye reads the at-risk tail first (where intervention lives).
+export const BANDS: HealthBand[] = ['critical', 'warning', 'fair', 'good', 'strong'];
+
+export const BAND_LABEL: Record<HealthBand, string> = {
+  critical: 'Critical',
+  warning: 'Warning',
+  fair: 'Fair',
+  good: 'Good',
+  strong: 'Strong',
+};
+
+// Human-readable score ranges — must mirror the floors in band() above.
+export const BAND_RANGE: Record<HealthBand, string> = {
+  critical: '<50',
+  warning: '50–61',
+  fair: '62–71',
+  good: '72–81',
+  strong: '82+',
+};
 
 // ── Value formatting ─────────────────────────────────────────────────────────
 // Hero numbers are the product. Format them tightly and consistently.

@@ -3,6 +3,7 @@ import {
 } from '@angular/core';
 import { TerritoryListItem } from '../dashboard.models';
 import { healthColor, band } from '../ui/health';
+import { brandAccent } from '../ui/brand';
 import { MAP_H, MAP_W, graticule, project, usOutlinePath } from '../ui/us-geo';
 
 interface MapPoint {
@@ -144,9 +145,6 @@ export class TerritoryMapComponent {
   readonly outline = usOutlinePath();
   readonly grat = graticule();
 
-  // Brand identity palette (chips/filter only — dots are ALWAYS health-colored).
-  private static readonly BRAND_ACCENTS: Record<number, string> = { 1: '#5B8CFF', 2: '#36D6A0', 3: '#FFB454' };
-
   @Input({ required: true }) set territories(v: TerritoryListItem[]) { this._terr.set(v ?? []); }
   @Output() select = new EventEmitter<TerritoryListItem>();
 
@@ -177,7 +175,7 @@ export class TerritoryMapComponent {
 
   readonly activeCount = computed(() => this.points().filter((p) => p.active).length);
 
-  brandAccent(id: number): string { return TerritoryMapComponent.BRAND_ACCENTS[id] ?? 'var(--accent)'; }
+  brandAccent(id: number): string { return brandAccent(id); }
   bandOf(score: number): string { return band(score); }
   bandLabel(score: number): string {
     const b = band(score);
