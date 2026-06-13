@@ -4,8 +4,26 @@
     <div class="dash-title">
       <span class="eyebrow">Franchisor Network · Portfolio View</span>
       <h1>Network Operations Command Center</h1>
+      <!-- ── Drill scope breadcrumb (D17) ───────────────────────────────────── -->
+      <nav class="drill-scope" aria-label="Drill scope">
+        <button class="ds-crumb" [class.on]="selectedBrandId() === null" (click)="selectBrand(null)">
+          Portfolio
+        </button>
+        @if (selectedBrand(); as b) {
+          <span class="ds-sep" aria-hidden="true">›</span>
+          <span class="ds-crumb on">
+            <span class="ds-swatch" [style.background]="brandAccent(b.brandId)"></span>{{ b.brandName }}
+            <span class="ds-count tnum">{{ b.territoryCount }} terr.</span>
+          </span>
+          <button class="ds-clear" (click)="selectBrand(null)" aria-label="Clear brand scope">clear ✕</button>
+        }
+      </nav>
     </div>
     <div class="dash-period">
+      <span class="data-src" [class.live]="liveMode"
+        [title]="liveMode ? 'Live data from Bravo endpoints' : 'CONTRACT §2 fixtures (demo mode)'">
+        <span class="src-dot"></span>{{ liveMode ? 'Live · Bravo' : 'Demo data' }}
+      </span>
       @if (period(); as p) {
         <span class="pill">{{ p.label }} · LTM {{ p.trailingWindowMonths }}mo</span>
       }
@@ -50,7 +68,12 @@
       <div class="sk-map"></div>
     </div>
   } @else {
-    <ec-territory-map [territories]="territories()" (select)="selectTerritory($event)" />
+    <ec-territory-map
+      [territories]="territories()"
+      [brandId]="selectedBrandId()"
+      (brandChange)="selectBrand($event)"
+      (select)="selectTerritory($event)"
+    />
   }
 
   <!-- ── Distribution + brand comparison (D13) ────────────────────────────── -->

@@ -10,6 +10,7 @@ import { DistributionComponent } from './components/distribution';
 import { BrandTableComponent } from './components/brand-table';
 import { ProvenanceComponent } from './components/provenance';
 import { WatchlistComponent } from './components/watchlist';
+import { brandAccent } from './ui/brand';
 
 // The executive landing surface. v1 wires the hero-8 (D11); the map, distribution,
 // provenance, scorecard and watchlist sections land in subsequent slices. Loads
@@ -46,9 +47,17 @@ export class DashboardComponent {
   readonly dataNotes = computed(() => this.corporate()?.dataNotes ?? []);
   readonly period = computed(() => this.corporate()?.period ?? null);
 
-  // D13 drill: selecting a brand row in the comparison table re-buckets the
-  // distribution histogram to that brand. Clicking the same brand again clears it.
+  // Brand scope — the portfolio→brand drill level. ONE signal drives the map, the
+  // distribution and the brand table (D17): pick a brand in any of them and all
+  // three re-scope together. null = whole portfolio.
   readonly selectedBrandId = signal<number | null>(null);
+  readonly selectedBrand = computed(
+    () => this.brandComparison().find((b) => b.brandId === this.selectedBrandId()) ?? null,
+  );
+
+  // D17: which data source is live. Display-only — the actual swap lives in the
+  // data service behind the same flag (window.__DASHBOARD_LIVE__).
+  readonly liveMode = (window as any).__DASHBOARD_LIVE__ === true;
 
   // D16: the provenance plane the user is highlighting. Drives the hero re-skin —
   // the provenance panel and every kpi-tile read this one signal. null = show all.
@@ -91,9 +100,13 @@ export class DashboardComponent {
     this.selectedTerritoryId.set(null);
   }
 
-  selectBrand(brandId: number): void {
-    this.selectedBrandId.update((cur) => (cur === brandId ? null : brandId));
+  // Components resolve their own toggle and emit the next scope (null clears); the
+  // dashboard just records it. Both the map's chips and the table's rows land here.
+  selectBrand(brandId: number | null): void {
+    this.selectedBrandId.set(brandId);
   }
+
+  brandAccent(id: number): string { return brandAccent(id); }
 
   setProvenancePlane(plane: ProvenanceType | null): void {
     this.provenanceFilter.set(plane);

@@ -146,10 +146,15 @@ export class TerritoryMapComponent {
   readonly grat = graticule();
 
   @Input({ required: true }) set territories(v: TerritoryListItem[]) { this._terr.set(v ?? []); }
+  // D17: brand scope is now CONTROLLED by the dashboard so the map, the distribution
+  // and the brand table share one selection — picking a brand anywhere scopes all
+  // three at once. The map's chips emit upward; the active state flows back in.
+  @Input() set brandId(v: number | null) { this.brandFilter.set(v ?? null); }
+  @Output() brandChange = new EventEmitter<number | null>();
   @Output() select = new EventEmitter<TerritoryListItem>();
 
   private readonly _terr = signal<TerritoryListItem[]>([]);
-  readonly brandFilter = signal<number | null>(null);
+  readonly brandFilter = signal<number | null>(null); // mirrors the controlled input
   readonly atRiskOnly = signal(false);
   readonly hovered = signal<MapPoint | null>(null);
 
@@ -182,7 +187,9 @@ export class TerritoryMapComponent {
     return b.charAt(0).toUpperCase() + b.slice(1);
   }
 
-  setBrand(id: number | null): void { this.brandFilter.set(id); }
+  // Toggle off when re-selecting the active brand; emit upward — the dashboard owns
+  // the scope and feeds it back through [brandId], so the map stays a pure view.
+  setBrand(id: number | null): void { this.brandChange.emit(this.brandFilter() === id ? null : id); }
   toggleRisk(): void { this.atRiskOnly.update((v) => !v); }
   hover(p: MapPoint | null): void { if (!p || p.active) this.hovered.set(p); }
 }

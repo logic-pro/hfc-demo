@@ -16,7 +16,40 @@
   font-size: 28px; font-weight: 600; letter-spacing: -0.02em;
   animation: rise var(--t-slow) var(--ease) both;
 }
+.dash-period { display: inline-flex; align-items: center; gap: 10px; }
 .dash-period .pill { font-size: 12px; }
+
+/* Data-source badge (D17) — demo (fixtures) vs live (Bravo). */
+.data-src {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: .03em;
+  color: var(--ink-3); border: 1px solid var(--surface-line); background: rgba(255,255,255,.015);
+}
+.data-src .src-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-4); }
+.data-src.live { color: var(--prov-measured); border-color: rgba(95,227,192,.32); background: rgba(95,227,192,.06); }
+.data-src.live .src-dot { background: var(--prov-measured); box-shadow: 0 0 8px -1px var(--prov-measured); }
+
+/* ── Drill scope breadcrumb (D17) ────────────────────────────────────────── */
+.drill-scope { display: inline-flex; align-items: center; gap: 8px; margin-top: 2px; animation: rise var(--t-slow) var(--ease) both; }
+.ds-crumb {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: inherit; font-size: 12px; font-weight: 600; letter-spacing: .02em;
+  color: var(--ink-3); background: none; border: none; padding: 3px 4px; cursor: pointer;
+  transition: color var(--t-fast) ease;
+}
+button.ds-crumb:hover { color: var(--ink-1); }
+.ds-crumb.on { color: var(--ink-0); cursor: default; }
+.ds-sep { color: var(--ink-4); font-size: 13px; }
+.ds-swatch { width: 9px; height: 9px; border-radius: 3px; box-shadow: 0 0 0 3px color-mix(in srgb, var(--bg-2) 70%, transparent); }
+.ds-count { font-size: 10.5px; font-weight: 500; color: var(--ink-3); letter-spacing: .02em; }
+.ds-clear {
+  font-family: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: .03em;
+  color: var(--ink-3); background: none; border: 1px solid var(--surface-line);
+  border-radius: 999px; padding: 2px 9px; cursor: pointer;
+  transition: color var(--t-fast) ease, border-color var(--t-fast) ease;
+}
+.ds-clear:hover { color: var(--health-warning); border-color: rgba(255,159,69,.36); }
 
 /* ── Hero grid ───────────────────────────────────────────────────────────── */
 .hero {

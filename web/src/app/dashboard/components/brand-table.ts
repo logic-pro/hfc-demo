@@ -65,8 +65,8 @@ const ARCHETYPE_LABEL: Record<Archetype, string> = {
               <tr
                 class="bt-row"
                 [class.sel]="r.brandId === selectedBrandId"
-                (click)="selectBrand.emit(r.brandId)"
-                (keydown.enter)="selectBrand.emit(r.brandId)"
+                (click)="selectBrand.emit(r.brandId === selectedBrandId ? null : r.brandId)"
+                (keydown.enter)="selectBrand.emit(r.brandId === selectedBrandId ? null : r.brandId)"
                 tabindex="0"
                 role="button"
                 [attr.aria-pressed]="r.brandId === selectedBrandId"
@@ -139,7 +139,8 @@ const ARCHETYPE_LABEL: Record<Archetype, string> = {
 export class BrandTableComponent {
   @Input({ required: true }) set brands(v: BrandComparisonRow[]) { this._rows.set(v ?? []); }
   @Input() selectedBrandId: number | null = null;
-  @Output() selectBrand = new EventEmitter<number>();
+  // Emits the resolved next scope (null clears) — the dashboard sets it verbatim.
+  @Output() selectBrand = new EventEmitter<number | null>();
 
   private readonly _rows = signal<BrandComparisonRow[]>([]);
   readonly sortKey = signal<SortKey>('composite');
