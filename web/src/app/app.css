@@ -56,6 +56,43 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 .muted { color: var(--muted); font-size: 0.85rem; }
 .hint { color: var(--muted); margin-top: 2rem; text-align: center; }
 
+/* ── AI-assisted intake ─────────────────────────────────────────────────── */
+.intake {
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  padding: 1rem 1.1rem; margin: 1.25rem 0;
+}
+.intake-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+.intake-head h3 { margin: 0; font-size: 1rem; }
+.intake-row { display: flex; gap: 0.6rem; margin-top: 0.6rem; align-items: stretch; }
+.intake-row textarea {
+  flex: 1; resize: vertical; font: inherit; font-size: 0.9rem;
+  padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 8px;
+}
+.intake-row textarea:focus { outline: none; border-color: var(--accent); }
+.intake-row .btn { white-space: nowrap; align-self: flex-start; }
+
+.draft { margin-top: 0.9rem; border-top: 1px dashed var(--line); padding-top: 0.9rem; }
+.draft-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.src-badge {
+  font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 999px;
+  letter-spacing: 0.3px;
+}
+.src-badge.ai { background: #e7f0ff; color: var(--accent); }
+.src-badge.heuristic { background: #fff4e5; color: #9a6700; }
+.banner.warn { background: #fff4e5; color: #9a6700; margin: 0.6rem 0; }
+
+.fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem 0.8rem; margin: 0.8rem 0; }
+@media (max-width: 700px) { .fields { grid-template-columns: 1fr; } }
+.fields label { display: flex; flex-direction: column; gap: 0.2rem; }
+.fields label.wide { grid-column: 1 / -1; }
+.fields label span { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.fields input, .fields select {
+  font: inherit; font-size: 0.9rem; padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line); border-radius: 7px; background: #fff;
+}
+.fields input:focus, .fields select:focus { outline: none; border-color: var(--accent); }
+.draft-actions { display: flex; gap: 0.6rem; }
+
 .btn {
   border: 1px solid var(--line); background: #fff; border-radius: 7px;
   padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer;

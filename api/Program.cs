@@ -15,6 +15,9 @@ builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(conn));
 // key — same validation rigor. See Auth.cs (the single tenancy seam).
 builder.Services.AddHfcAuth(builder.Configuration);
 
+// AI-assisted structured intake (free text -> typed, human-verifiable draft).
+builder.Services.AddSingleton<IntakeService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -168,6 +171,17 @@ app.MapPost("/api/appointments/{id:int}/deposit",
     await db.SaveChangesAsync();
     return Results.Ok(new AppointmentDto(appt.Id, appt.TerritoryId, appt.StartUtc,
         appt.CustomerName, appt.Service, appt.DepositCents, true));
+}).RequireAuthorization();
+
+// AI-assisted structured intake: turn the customer's free-text request into a
+// TYPED draft the agent can review and edit before booking. Tenant-scoped so the
+// extractor maps onto the current brand's service vocabulary. Spend/latency are
+// capped inside the service, and any failure degrades to a local heuristic — so
+// this endpoint always returns a usable draft (never 5xx on a model hiccup).
+app.MapPost("/api/intake/parse", async (IntakeRequest req, IntakeService intake, TenantContext t, CancellationToken ct) =>
+{
+    var draft = await intake.ParseAsync(req.Text, t.BrandId, ct);
+    return Results.Ok(draft);
 }).RequireAuthorization();
 
 // SPA fallback: any non-API, non-file route serves index.html so Angular's

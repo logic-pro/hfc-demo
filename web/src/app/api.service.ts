@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Appointment, BookRequest, Brand, DevTokenResponse, Franchisee, Slot } from './models';
+import { Appointment, BookRequest, Brand, DevTokenResponse, Franchisee, IntakeDraft, Slot } from './models';
 
 // Thin typed wrapper over the API. Returns Observables so callers can compose
 // with RxJS (retry, switchMap, combineLatest) — the tenant header is added by
@@ -31,6 +31,12 @@ export class ApiService {
   }
   book(req: BookRequest): Observable<Appointment> {
     return this.http.post<Appointment>(`${this.base}/api/appointments`, req);
+  }
+  // AI-assisted intake: free text -> typed, reviewable draft. Tenant-scoped via
+  // the bearer token the interceptor attaches; the server maps onto the brand's
+  // service vocabulary from the verified claim.
+  parseIntake(text: string): Observable<IntakeDraft> {
+    return this.http.post<IntakeDraft>(`${this.base}/api/intake/parse`, { text });
   }
   // Idempotency-Key makes a retried deposit a no-op server-side.
   deposit(appointmentId: number, amountCents: number, idempotencyKey: string): Observable<Appointment> {

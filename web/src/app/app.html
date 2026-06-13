@@ -33,6 +33,78 @@
       </label>
     </div>
 
+    <!-- AI-assisted structured intake: a sentence becomes a reviewable booking -->
+    <section class="intake">
+      <div class="intake-head">
+        <h3>AI-assisted intake</h3>
+        <span class="muted">Describe the job in plain words — we extract the fields for you to verify.</span>
+      </div>
+      <div class="intake-row">
+        <textarea
+          rows="2"
+          placeholder="e.g. Hi, this is Dana in Tustin — my water heater burst and flooded the garage, need someone ASAP, mornings are best."
+          [ngModel]="intakeText()"
+          (ngModelChange)="intakeText.set($event)"></textarea>
+        <button class="btn primary" [disabled]="parsing() || !intakeText().trim()" (click)="parseIntake()">
+          {{ parsing() ? 'Reading…' : 'Draft with AI' }}
+        </button>
+      </div>
+
+      @if (draft(); as d) {
+        <div class="draft">
+          <div class="draft-head">
+            <strong>Review the extracted intake</strong>
+            <span class="src-badge" [class.ai]="d.usedAi" [class.heuristic]="!d.usedAi">
+              {{ d.usedAi ? (d.model || 'AI') : 'local heuristic' }}
+              · {{ pct(d.confidence) }}% conf
+              @if (d.usedAi && d.latencyMs) { · {{ d.latencyMs }}ms }
+            </span>
+          </div>
+          @if (d.notice) { <div class="banner warn">{{ d.notice }}</div> }
+
+          <div class="fields">
+            <label>
+              <span>Customer</span>
+              <input type="text" [ngModel]="d.customerName ?? ''" (ngModelChange)="patchDraft('customerName', $event)" placeholder="—" />
+            </label>
+            <label>
+              <span>Service</span>
+              <input type="text" [ngModel]="d.service" (ngModelChange)="patchDraft('service', $event)" />
+            </label>
+            <label>
+              <span>Urgency</span>
+              <select [ngModel]="d.urgency" (ngModelChange)="patchDraft('urgency', $event)">
+                @for (u of urgencyOptions; track u) { <option [value]="u">{{ u }}</option> }
+              </select>
+            </label>
+            <label>
+              <span>Time of day</span>
+              <select [ngModel]="d.preferredTimeOfDay" (ngModelChange)="patchDraft('preferredTimeOfDay', $event)">
+                @for (t of timeOptions; track t) { <option [value]="t">{{ t }}</option> }
+              </select>
+            </label>
+            <label>
+              <span>Preferred date</span>
+              <input type="text" [ngModel]="d.preferredDate ?? ''" (ngModelChange)="patchDraft('preferredDate', $event)" placeholder="—" />
+            </label>
+            <label>
+              <span>Area</span>
+              <input type="text" [ngModel]="d.territoryHint ?? ''" (ngModelChange)="patchDraft('territoryHint', $event)" placeholder="—" />
+            </label>
+            <label class="wide">
+              <span>Notes</span>
+              <input type="text" [ngModel]="d.notes" (ngModelChange)="patchDraft('notes', $event)" placeholder="—" />
+            </label>
+          </div>
+
+          <div class="draft-actions">
+            <button class="btn primary" (click)="useDraft()">Use this → book a slot</button>
+            <button class="btn" (click)="discardDraft()">Discard</button>
+          </div>
+        </div>
+      }
+    </section>
+
     <div class="columns">
       <section class="col">
         <h3>Open slots @if (loading()) { <span class="muted">loading…</span> }</h3>
