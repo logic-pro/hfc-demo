@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { ApiService } from './api.service';
 import { TenantService } from './tenant.service';
-import { Appointment, Brand, Slot } from './models';
+import { Appointment, Franchisee, Slot } from './models';
 
 @Component({
   selector: 'app-root',
@@ -16,37 +16,45 @@ export class App implements OnInit {
   private tenant = inject(TenantService);
 
   // ── View state as signals ───────────────────────────────────────────────
-  readonly brands = signal<Brand[]>([]);
+  readonly franchisees = signal<Franchisee[]>([]);
   readonly slots = signal<Slot[]>([]);
   readonly appointments = signal<Appointment[]>([]);
-  readonly selectedBrandId = this.tenant.brandId; // signal, shared with interceptor
+  readonly selectedFranchiseeId = this.tenant.franchiseeId; // signal, shared with interceptor
   readonly customerName = signal('Jane Doe');
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
 
-  readonly selectedBrand = computed(() =>
-    this.brands().find((b) => b.id === this.selectedBrandId()) ?? null,
+  readonly selectedFranchisee = computed(() =>
+    this.franchisees().find((f) => f.id === this.selectedFranchiseeId()) ?? null,
   );
   readonly openSlots = computed(() => this.slots().filter((s) => !s.isBooked));
 
   ngOnInit(): void {
-    this.api.brands().subscribe({
-      next: (b) => this.brands.set(b),
+    this.api.franchisees().subscribe({
+      next: (f) => this.franchisees.set(f),
       error: () => this.error.set('Could not reach the API. Is it running on :5180?'),
     });
   }
 
-  selectBrand(id: string): void {
-    this.tenant.select(id);
+  // Selecting a franchisee mints a scoped token (login stand-in), then loads the
+  // tenant-isolated schedule. The server resolves the tenant from the token's
+  // claim — same brand, different franchisee never leaks.
+  selectFranchisee(f: Franchisee): void {
     this.error.set(null);
     this.notice.set(null);
-    this.refresh();
+    this.api.token(f.id).subscribe({
+      next: (res) => {
+        this.tenant.setSession(res.franchiseeId, res.brandId, res.token);
+        this.refresh();
+      },
+      error: () => this.error.set('Could not sign in as that franchisee.'),
+    });
   }
 
   // Parallel reads with forkJoin — both complete before we paint.
   private refresh(): void {
-    if (!this.selectedBrandId()) return;
+    if (!this.selectedFranchiseeId()) return;
     this.loading.set(true);
     forkJoin({ slots: this.api.slots(), appointments: this.api.appointments() }).subscribe({
       next: ({ slots, appointments }) => {
@@ -55,7 +63,7 @@ export class App implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Failed to load this brand’s schedule.');
+        this.error.set('Failed to load this franchisee’s schedule.');
         this.loading.set(false);
       },
     });
