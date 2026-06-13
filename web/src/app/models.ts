@@ -45,3 +45,58 @@ export interface BookRequest {
   customerName: string;
   service: string;
 }
+
+// ── Corporate executive dashboard (read model) ──────────────────────────────
+// View models for the franchisor-CEO dashboard. These mirror the corporate
+// read-model projections (docs/architecture/corporate-readmodel.sql), NOT the
+// operational tables — the dashboard reads aggregates across franchisees, the
+// one place the franchisee tenant filter is deliberately not applied (ADR-19).
+//
+// Provenance is first-class (ADR-20): every metric carries its data quality and
+// an "as of" date. Financial fields stay value:null + dataQuality:'unavailable'
+// + a gap note until completed_job.invoiceAmount + territory.royalty_rate exist.
+// Deposits/estimates are never substituted for revenue.
+
+export type DataQuality =
+  | 'actual' // measured plane, app-native, near-real-time
+  | 'proxy' // a stand-in measure, labelled as such
+  | 'partial' // incomplete coverage for the period
+  | 'estimated'
+  | 'stale' // last good value, past its refresh window
+  | 'unavailable'; // source not wired yet (e.g. financials) — NOT an error
+
+// One tile's worth of metric, as it crosses the wire. The frontend owns
+// formatting (number-format.util); the read model owns the calculation.
+export interface Metric {
+  value: number | null;
+  deltaPercent?: number | null;
+  sparkline?: number[];
+  dataQuality: DataQuality;
+  asOf: string; // ISO date of the underlying snapshot
+  gap?: string; // shown when dataQuality === 'unavailable'
+}
+
+export interface HeroPeriod {
+  type: 'MTD' | 'QTD' | 'YTD' | 'TTM';
+  start: string;
+  end: string;
+}
+
+// GET /api/corporate-dashboard/hero  ← executive_kpi_snapshot
+export interface HeroVm {
+  period: HeroPeriod;
+  lastUpdated: string;
+  metricVersion: string;
+  metrics: {
+    // measured plane — real from day one
+    activeTerritories: Metric;
+    atRiskTerritories: Metric;
+    networkNps: Metric;
+    newFranchiseSales: Metric;
+    // reported plane — 'unavailable' until the two OLTP fields land
+    grossSales: Metric;
+    royaltyRevenue: Metric;
+    sameTerritoryGrowth: Metric;
+    collectionRate: Metric;
+  };
+}

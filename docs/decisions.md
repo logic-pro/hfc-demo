@@ -125,3 +125,65 @@ tenant key. See [ROADMAP](../ROADMAP.md) §2–3.
 agent/dev sessions run at once) without branch-switching churn. **Caveat:** Slice A
 (auth/tenancy) is foundational — merge it to `main` first, then rebase B/C/D.
 **Revisit:** collapse to a single branch if the slices turn out tightly coupled.
+
+---
+
+## Corporate executive dashboard — roll-up read model (ADR-18..21)
+
+> The franchisor-CEO BI dashboard (Portfolio → Brand → Region → Territory). See
+> [docs/architecture/corporate-readmodel.sql](architecture/corporate-readmodel.sql)
+> for the concrete DDL and [ROADMAP](../ROADMAP.md) §3 for the operational data model
+> these aggregate from.
+
+### ADR-18 — CEO dashboard reads a pre-aggregated read model, never operational tables
+**Decision:** The corporate dashboard reads a `report`-schema roll-up populated by a
+nightly job; it never runs live analytical queries against the franchisee operational
+tables (Appointment/Slot/Estimate/…). **Why:** three reasons converge — (1) **boundary**:
+franchisees are data controllers; corporate is entitled to *aggregates*, not raw rows,
+and a read model makes that the only thing the dashboard *can* see; (2) **cost**: 2,600
+territories × rolling-12-mo windows × a 15-input score is a latency cliff that would
+contend with franchisees' live booking writes; (3) **consistency**: one KPI definition,
+reproducible snapshots. **Alternative:** live queries / Power BI DirectQuery against
+operational DBs — rejected: couples release cycles, stresses the transactional path,
+leaks franchisee-private rows. **Revisit:** if a specific metric needs sub-day freshness
+for an *operational* (not executive) dashboard — that's a different surface, not this one.
+
+### ADR-19 — Read model lives OUTSIDE the EF global query filter (separate `report` plane)
+**Decision:** Roll-up tables are in a `report` schema with **no tenant query filter**,
+written only by the aggregation job and read only by the `corporate` role; the dashboard
+APIs are read-only and RBAC-scoped (corporate = all; regional ops = their region; one read
+model, three lenses — scope is a query predicate, not three apps). **Why:** the whole point
+is to read *across* franchisees, which is exactly what the fail-closed `FranchiseeId` filter
+(ADR-04) forbids — so this is a deliberately separate, append-mostly plane on the other side
+of the controller boundary. Corporate-reads-*down* aggregates is legitimate oversight; the
+filter still blocks franchisee-reads-*sideways*. **Alternative:** reuse the operational
+DbContext with the filter disabled per-query — rejected: one bypass bug = cross-tenant leak;
+a physically separate schema/role makes leakage structurally impossible. **Revisit:** move
+`report` to its own database/warehouse (Synapse/Snowflake) when volume or the JM-Family
+consolidated-reporting flow demands it — the schema is designed to lift cleanly.
+
+### ADR-20 — Two data planes, explicit provenance; deposits/estimates are never revenue
+**Decision:** Every metric carries `data_quality_status` (`actual|proxy|partial|estimated|
+stale|unavailable`) and an `as_of` date. Financial fields (gross sales, royalty, MRR,
+reviews) are the **reported plane** (franchisee self-report / billing / integrations, lagging
+the monthly royalty cycle); operational fields (fill rate, jobs, no-show, NPS) are the
+**measured plane** (app-native, near-real-time). Tier-1 revenue stays `NULL` +
+`status='unavailable'` + a stated `gap` until `completed_job.invoiceAmount` and
+`territory.royalty_rate` exist. **Why:** the CEO's headline numbers live in a plane HFC
+doesn't yet own in this app; shipping them unlabeled turns a self-reported estimate into a
+decision input. The deposit (ADR-07) is a stub and the estimate is a quote — substituting
+either for realized revenue is the classic vanity-metric failure. **Alternative:** show one
+blended number — rejected: false confidence. **Revisit:** when POS/billing integration lands,
+flip the affected fields to `actual`; the API contract is unchanged (`value` goes non-null).
+
+### ADR-21 — Health score = four versioned, tenure-curved sub-scores (composite for sort only)
+**Decision:** `territory_monthly_summary` stores `score_financial / score_customer /
+score_growth / score_compliance` (0–100) plus a `score_composite` used only for map color and
+ranking. Weights live in `report.metric_weight_version` (owned by Franchise Ops, not constants
+in code); every score row is stamped with the `metric_version` that produced it. The score is
+**tenure-curved** (a ramping 6-month franchisee is benchmarked against a ramp curve, not the
+brand average). **Why:** a naked composite hides *why* and can mask a collapsing-NPS territory
+behind lagging-but-strong financials; un-versioned weights silently break every historical
+trend the moment Ops re-weights. **Alternative:** single hardcoded 0–100 — rejected as
+unactionable and unauditable. **Revisit:** add ML-driven weighting only after the rule-based
+version has a baseline; never before the financial sub-score has real (`actual`) inputs.
