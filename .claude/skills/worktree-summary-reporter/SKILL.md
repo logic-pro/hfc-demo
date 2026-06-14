@@ -106,6 +106,23 @@ Dependencies on other worktrees, likely conflicts, files likely to overlap, requ
 **Recommended next action:**
 ```
 
+## Delivery (don't just print — put it in the PM's inbox)
+
+After writing the report, **deliver it to the shared PM bus** so it isn't "summarized
+in chat and forgotten." From inside the worktree, pipe the report body to the bus script
+(it resolves the shared `.pm/` via git's common dir and writes both an append-only inbox
+entry and your current status file):
+
+```bash
+MAIN="$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)"
+SLOT="$(basename "$(git rev-parse --show-toplevel)")"
+printf '%s\n' "$REPORT_BODY" | "$MAIN/scripts/pm/report-to-pm.sh" "$SLOT"
+```
+
+This is also exactly what the **Stop hook** (`report-on-stop.sh`) asks for when a lane
+tries to finish with unreported work — running this skill satisfies it. The PM reads
+`.pm/inbox/` to stay in the loop without you pasting into the coordination window.
+
 ## Quality Rules
 
 * Be precise; use actual repo evidence.
