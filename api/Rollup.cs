@@ -123,6 +123,14 @@ public static class Rollup
             double royaltyRate = brand.RoyaltyRate;
             double royaltyRevenue = r.GrossRevenue * royaltyRate;
 
+            // NPS provenance (round 3 / ADR-20 hardening): NPS is MEASURED only when
+            // the territory has real survey rows. With none, we fall back to the
+            // seeded report value so the demo keeps a non-zero historical signal —
+            // but we record that this row's NPS is NOT measured, so it can never be
+            // presented as measured downstream. The fallback is the seeded value
+            // (never the 0 that an empty survey set would average to).
+            bool npsMeasured = npsByTerr.TryGetValue(r.TerritoryId, out var measuredNps);
+
             rows.Add(new Row
             {
                 Terr = terr, Brand = brand, PeriodId = r.PeriodId,
@@ -140,8 +148,8 @@ public static class Rollup
                 SameTerritoryGrowth = r.SameTerritoryGrowth,
                 // measured from surveys (D-NPS-SWAP); seeded report value is the
                 // fallback only when a territory has no survey responses yet.
-                NpsScore = npsByTerr.TryGetValue(r.TerritoryId, out var measuredNps)
-                    ? measuredNps : r.NpsScore,
+                NpsScore = npsMeasured ? measuredNps : r.NpsScore,
+                NpsMeasured = npsMeasured,
                 GoogleRating = r.GoogleRating,
                 QuoteToClose = r.QuoteToClose,
                 AsOfMeasured = sa.Total > 0 ? sa.AsOf : r.PeriodEnd,
@@ -219,7 +227,14 @@ public static class Rollup
                 ScoreStatus = status,
                 AsOfMeasured = x.AsOfMeasured,
                 AsOfReported = x.AsOfReported,
-                RefreshStatus = x.Reported ? "current" : "pending",
+                // Per-row provenance summary (ADR-20). The reported cycle gating
+                // stays primary: an unreported cycle is "pending". A reported row
+                // is only "current" when its headline customer metric (NPS) is
+                // actually survey-measured; if NPS is the seeded fallback the row
+                // is "seeded", so a seeded value can never read as measured/current.
+                // (Consumed by Bravo's dashboard-provenance projection; the EF read
+                // model does not key off this column today, so this is additive.)
+                RefreshStatus = !x.Reported ? "pending" : x.NpsMeasured ? "current" : "seeded",
                 LoadedAt = now,
             });
         }
@@ -355,6 +370,7 @@ public static class Rollup
         public double GrossRevenue, RoyaltyRate, RoyaltyRevenue, RoyaltyCollected, CollectionRate;
         public double SameTerritoryGrowth;
         public int NpsScore;
+        public bool NpsMeasured;        // true => NpsScore came from real surveys, not the seeded fallback
         public double GoogleRating, QuoteToClose;
         public DateTime? AsOfMeasured, AsOfReported;
     }
