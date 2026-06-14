@@ -1,0 +1,66 @@
+name: screenshots
+
+# Produces REVIEWABLE screenshots as a downloadable artifact. The e2e drivers in
+# e2e/drive-*.mjs are headless Playwright scripts that boot nothing themselves —
+# this job stands up the API + web, runs each driver, and uploads the PNGs. Needed
+# because a real Chromium (with system libs) only exists on a CI runner, not in the
+# local agent sandbox. Download from the run's "Artifacts" section to review.
+on:
+  workflow_dispatch: {}          # run on demand from the Actions tab
+  push:
+    branches: [main]
+    paths: ['e2e/**', 'web/**', 'api/**']   # refresh shots when the app or drivers change
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with: { dotnet-version: '9.0.x' }
+      - uses: actions/setup-node@v5
+        with: { node-version: '20' }
+
+      # Real browser + the OS libs the local sandbox lacks (libnspr4, libnss3, …).
+      - name: Install Playwright + Chromium (with deps)
+        run: |
+          npm i -g playwright@latest
+          npx --yes playwright install --with-deps chromium
+
+      - name: Build + start API (background)
+        working-directory: api
+        run: |
+          dotnet build -c Release
+          (dotnet run -c Release --no-build --urls http://localhost:5180 &)
+          for i in $(seq 1 40); do curl -sf http://localhost:5180/health && break || sleep 1; done
+
+      - name: Build + serve web (background)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          (npx --yes http-server dist/web/browser -p 4200 -s &)
+          for i in $(seq 1 30); do curl -sf http://localhost:4200 >/dev/null && break || sleep 1; done
+
+      - name: Run all e2e drivers -> /tmp/hfc-shots
+        env:
+          HFC_WEB_BASE: http://localhost:4200
+          HFC_API_BASE: http://localhost:5180
+        run: |
+          mkdir -p /tmp/hfc-shots
+          for d in e2e/drive-*.mjs; do
+            echo "=== $d ==="
+            node "$d" "" /tmp/hfc-shots || echo "WARN: $d failed (continuing so other shots still upload)"
+          done
+          echo "Captured:"; ls -la /tmp/hfc-shots
+
+      - name: Upload screenshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hfc-screenshots
+          path: /tmp/hfc-shots/*.png
+          if-no-files-found: warn
+          retention-days: 14

@@ -28,4 +28,7 @@ functions/local.settings.json
 .pm/inbox/*
 .pm/outbox/*
 .pm/archive/*
+.pm/handoffs/*
+.pm/locks/*
+.pm/.context-warned
 !.pm/**/.gitkeep

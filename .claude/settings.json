@@ -9,7 +9,15 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/load-assignment.sh" }
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/load-assignment.sh" },
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/load-handoff.sh" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/context-watch.sh" }
         ]
       }
     ],
