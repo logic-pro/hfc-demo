@@ -23,6 +23,11 @@ export class ApiService {
   token(franchiseeId: string): Observable<DevTokenResponse> {
     return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { franchiseeId });
   }
+  // Franchisor HQ login stand-in: mint a token with role=corporate (no tenant).
+  // The server gates the read-down corporate endpoints on this claim.
+  corporateToken(): Observable<DevTokenResponse> {
+    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { role: 'corporate' });
+  }
   slots(): Observable<Slot[]> {
     return this.http.get<Slot[]>(`${this.base}/api/slots`);
   }

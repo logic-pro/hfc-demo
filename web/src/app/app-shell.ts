@@ -1,21 +1,32 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { TenantService } from './tenant.service';
 
-// Thin root shell: a slim nav strip to switch between the three surfaces, then
-// the routed view. Deliberately minimal and background-transparent so each
-// surface owns its own canvas — the booking demo (App) paints its light theme,
-// the executive dashboard paints the dark Operations Command Center theme, and
-// neither bleeds into the other.
+// Thin root shell: a slim nav strip that adapts to the signed-in role, then the
+// routed view. The nav only renders once authenticated (the /login screen owns
+// its own full canvas), and shows only the surfaces the role can actually use —
+// franchisor HQ sees the Executive command center; a franchisee sees Operator +
+// Scheduling. Deliberately minimal and background-transparent so each surface
+// owns its own canvas and neither theme bleeds into the other.
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <nav class="nav">
-      <span class="mark">HFC<span>platform</span></span>
-      <a routerLink="/corporate" routerLinkActive="active">Executive</a>
-      <a routerLink="/dashboard" routerLinkActive="active">Operator</a>
-      <a routerLink="/booking" routerLinkActive="active">Scheduling</a>
-    </nav>
+    @if (tenant.isAuthenticated()) {
+      <nav class="nav">
+        <span class="mark">HFC<span>platform</span></span>
+        @if (tenant.role() === 'corporate') {
+          <a routerLink="/corporate" routerLinkActive="active">Executive</a>
+        }
+        @if (tenant.role() === 'franchisee') {
+          <a routerLink="/dashboard" routerLinkActive="active">Operator</a>
+          <a routerLink="/booking" routerLinkActive="active">Scheduling</a>
+        }
+        <span class="spacer"></span>
+        <span class="who">Signed in as <strong>{{ tenant.displayName() }}</strong></span>
+        <button type="button" class="signout" (click)="signOut()">Sign out</button>
+      </nav>
+    }
     <router-outlet />
   `,
   styles: [
@@ -40,7 +51,29 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
       }
       .nav a:hover { color: #fff; }
       .nav a.active { color: #fff; border-bottom-color: #5fe3c0; }
+      .spacer { flex: 1; }
+      .who { color: #9fb3c8; font-size: 0.82rem; }
+      .who strong { color: #fff; font-weight: 600; }
+      .signout {
+        background: transparent;
+        border: 1px solid #2a3a4d;
+        color: #9fb3c8;
+        font-size: 0.82rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: border-color 0.15s ease, color 0.15s ease;
+      }
+      .signout:hover { color: #fff; border-color: #5fe3c0; }
     `,
   ],
 })
-export class AppShell {}
+export class AppShell {
+  readonly tenant = inject(TenantService);
+  private router = inject(Router);
+
+  signOut(): void {
+    this.tenant.clear();
+    this.router.navigateByUrl('/login');
+  }
+}

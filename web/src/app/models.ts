@@ -16,10 +16,14 @@ export interface Franchisee {
   region: string;
 }
 
+// One token-mint response covers both scopes. A franchisee mint carries the
+// tenant ids; a corporate (Franchisor HQ) mint omits them (role claim only), so
+// franchiseeId/brandId are optional.
 export interface DevTokenResponse {
   token: string;
-  franchiseeId: string;
-  brandId: string;
+  role?: 'corporate' | 'franchisee';
+  franchiseeId?: string | null;
+  brandId?: string | null;
 }
 
 export interface Slot {

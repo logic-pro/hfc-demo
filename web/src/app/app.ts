@@ -54,7 +54,7 @@ export class App implements OnInit {
     this.draft.set(null); // intake vocabulary is per-brand; start fresh on franchisee switch
     this.api.token(f.id).subscribe({
       next: (res) => {
-        this.tenant.setSession(res.franchiseeId, res.brandId, res.token);
+        this.tenant.setSession(res.franchiseeId ?? f.id, res.brandId ?? f.brandId, res.token, f.name);
         this.refresh();
       },
       error: () => this.error.set('Could not sign in as that franchisee.'),
