@@ -42,7 +42,7 @@ import { PROVENANCE_LABEL, CONFIDENCE_DOTS } from '../ui/health';
               @if (v.trendPercent !== undefined) {
                 <span class="arrow">{{ arrow() }}</span>
                 <span class="tnum">{{ trendText() }}</span>
-                <span class="trend-cap">YoY</span>
+                <span class="trend-cap">{{ trendBasis() }}</span>
               }
             </div>
             @if (v.spark?.length) {
@@ -136,6 +136,17 @@ export class KpiTileComponent {
     const p = this._v()!.trendPercent ?? 0;
     return `${Math.abs(p).toFixed(1)}%`;
   });
+
+  // The delta's comparison basis. Default is YoY (vs the same period last year);
+  // a metric whose VALUE is already a YoY rate must name a different reference so
+  // the delta isn't a restatement of the value. Charlie-side presentation aid keyed
+  // by metricKey — no CONTRACT §2 change.
+  private static readonly TREND_BASIS: Record<string, string> = {
+    same_territory_growth_yoy: 'vs 5.0% plan',
+  };
+  readonly trendBasis = computed(
+    () => KpiTileComponent.TREND_BASIS[this._v()!.metricKey] ?? 'YoY',
+  );
 
   // Sparkline / accent line track the trend's goodness, never the raw direction.
   readonly lineColor = computed(() => {

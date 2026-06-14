@@ -69,6 +69,16 @@
   margin-top: 2px;
 }
 
+/* ── Visual authority must match epistemic authority ─────────────────────────
+   A measured value earns full-contrast hero type; an illustrative (seeded) value
+   must NOT read as boldly as a measured fact. Mute the number itself — not just
+   the badge — so $42.8M (seeded) never carries the same weight as 18,520 (measured).
+   Measured/reported keep full authority; only illustrative steps down. */
+.tile[data-prov='seeded'] .tile-value:not(.unavailable) {
+  color: var(--ink-2);
+  font-weight: 500;
+}
+
 /* ── Genuinely-unsourced metric (integration graft): dashed, never a fake number ── */
 .tile[data-unavailable='true']::after { opacity: .25; background: var(--ink-4); box-shadow: none; }
 .tile-value.unavailable {
