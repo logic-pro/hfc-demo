@@ -1,9 +1,17 @@
 // Mirrors the API DTOs (HfcDemo records). Kept in one place so the contract
 // is explicit and the compiler catches drift between client and server.
 export interface Brand {
-  id: string;
+  id: string; // slug — operational key
   name: string;
   tagline: string;
+  num?: number; // numeric dashboard id (brand_id); used to mint a brand-scope token
+}
+
+// A region: the geographic grouping a region-manager persona signs in as.
+// Mirrors the API RegionDto; `id` is the numeric region id the token mint takes.
+export interface RegionRef {
+  id: number;
+  name: string;
 }
 
 // A franchisee is the tenancy boundary (brand is the grouping). The picker uses
@@ -16,10 +24,14 @@ export interface Franchisee {
   region: string;
 }
 
+// One token-mint response covers all scopes. A franchisee mint carries the
+// tenant ids; the corporate scopes (network/brand/region) omit them — the scope
+// claim is inside the signed token — so they are optional.
 export interface DevTokenResponse {
   token: string;
-  franchiseeId: string;
-  brandId: string;
+  scope?: 'network' | 'brand' | 'region' | 'franchisee';
+  franchiseeId?: string | null;
+  brandId?: string | null;
 }
 
 export interface Slot {
