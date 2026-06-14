@@ -17,10 +17,12 @@
 //   5. screenshot at a mobile viewport (390px reflow — no reload, token kept)
 //   6. exit non-zero on ANY console error (so CI fails loudly)
 //
-// Prereqs: API on :5180 and `ng serve` on :4200 (see run-hfc-demo SKILL.md).
+// Prereqs: API on :5180 (run in Development so /api/dev/token is mapped) and
+// `ng serve` on :4200 (see run-hfc-demo SKILL.md).
 // Usage:   node e2e/drive-franchisee.mjs [franchiseeLabel] [outDir]
-//          node e2e/drive-franchisee.mjs "Budget Blinds · Irvine" /tmp/hfc-shots
-// The label is matched against the chip text "{brandName} · {region}".
+//          API_BASE=http://localhost:5180 node e2e/drive-franchisee.mjs "Budget Blinds · East" /tmp/hfc-shots
+// The label is matched against the chip text "{brandName} · {region}". Set API_BASE
+// for local dev so the SPA targets the real API instead of its same-origin api-base.js.
 
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -37,10 +39,19 @@ const KPIS = 'section[aria-label="Key performance indicators"] button';
 
 const browser = await chromium.launch({ args: ["--no-sandbox"] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-// Point the SPA at a specific API before any app code runs (parallel worktrees
-// may hold :5180; CORS is open so a cross-origin base is fine).
+// Point the SPA at a specific API. The SPA loads /api-base.js at runtime to pick
+// its API origin; a same-origin deploy ships it as `window.__API_BASE__=''`, and
+// `ng serve` serves that committed file. When driving a SEPARATE API (local dev,
+// or a parallel worktree that holds :5180), intercept that request so the override
+// actually wins — an addInitScript would be clobbered because api-base.js loads
+// after it. Without this the SPA calls /api/* on its own origin, the dev server
+// SPA-fallbacks to index.html, and HttpClient chokes on HTML ("could not reach API").
 if (API_BASE) {
-  await page.addInitScript((base) => { window.__API_BASE__ = base; }, API_BASE);
+  await page.route("**/api-base.js", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `window.__API_BASE__=${JSON.stringify(API_BASE)};`,
+    }));
   console.log(`API base override: ${API_BASE}`);
 }
 const fails = [];
@@ -64,12 +75,25 @@ try {
   await page.waitForSelector(KPIS, { timeout: 10000 });
   console.log(`dashboard loaded; KPI tiles: ${await page.locator(KPIS).count()}`);
 
-  // 3. desktop screenshot
+  // 3. action rows are period-scoped; if the default period (Month) has none,
+  //    advance Quarter -> Year until some appear, so the desktop shot is populated
+  //    and the drawer step below actually has a row to open. Best-effort: if no
+  //    period has follow-ups, we keep the default and skip the drawer (logged).
+  const rows = page.locator("table tbody tr");
+  const periodGroup = page.locator('[aria-label="Period"]');
+  for (const label of ["Quarter", "Year"]) {
+    if (await rows.count()) break;
+    console.log(`no action rows at current period — switching to "${label}"`);
+    await periodGroup.getByRole("button", { name: label, exact: true }).click();
+    await page.waitForTimeout(600);                       // debounced (150ms) reload + fetch
+    await page.waitForSelector(KPIS, { timeout: 10000 });
+  }
+
+  // desktop screenshot
   await page.waitForTimeout(400); // let the trend/funnel charts settle
   await shot(page, "franchisee-1-desktop.png");
 
   // 4. open the first action row -> detail drawer
-  const rows = page.locator("table tbody tr");
   const rowCount = await rows.count();
   if (rowCount) {
     await rows.first().click();
