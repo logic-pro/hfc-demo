@@ -1,90 +1,61 @@
 #!/usr/bin/env node
-// drive-dashboard.mjs — headless e2e driver + screenshotter for Slice D, the
-// Franchisee Operations Dashboard. Drives the REAL running stack against the
-// live read-model (DashboardApiService.USE_MOCK = false) and saves PNGs:
-//   1. load the SPA, pick a brand (sets the tenant)
-//   2. navigate to /dashboard  -> live GET /api/dashboard (+ /territories)
-//   3. screenshot the dashboard (desktop)
-//   4. open an action row -> detail drawer; screenshot
-//   5. exercise "Send deposit link" -> ApiService.deposit(...) -> read-model reload
-//   6. screenshot at a mobile viewport (responsive reflow, no reload)
+// drive-dashboard.mjs — driver + screenshotter for the EXECUTIVE command center
+// (the franchisor read-down surface at `/corporate`, which `/` redirects to).
 //
-// Prereqs: API on :5180 and `ng serve` on :4200 (see run-hfc-demo SKILL.md).
-// Usage:   node e2e/drive-dashboard.mjs [brandName] [outDir]
+// This is the anonymous corporate lens: no sign-in. The server resolves an
+// unauthenticated request to the corporate roll-up (see smoke-api.sh
+// "dashboard/corporate: anonymous -> corporate lens"), so the hero KPIs load
+// straight away. The OLD version of this driver waited for a `.chip` brand
+// picker on the landing page — that picker is gone (chips now live on the
+// Scheduling page), which is why the live gate was timing out. The franchisee
+// Operator surface is covered separately by drive-franchisee.mjs.
+//
+// Flow:
+//   1. load the SPA shell, click the "Executive" nav (default surface anyway)
+//   2. wait for the command center + hero-8 KPI tiles to RENDER WITH NUMBERS
+//      (skeletons render plain .tile.card.skeleton; real data renders <ec-kpi-tile>)
+//   3. screenshot desktop + mobile (390px reflow)
+//   4. exit non-zero on any console/page error, or if no KPI ever shows a number
+//
+// Usage: node e2e/drive-dashboard.mjs [unused] [outDir]   (WEB_URL/BASE from env)
 
-import { chromium } from "playwright";
-import { mkdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { launch, shotter, resolveBase, outDir, gotoReady } from "./_helpers.mjs";
 
-const WEB = process.env.WEB_URL ?? "http://localhost:4200";
-const API_BASE = process.env.API_BASE ?? null; // override the SPA's API base if set
-const brandName = process.argv[2] ?? "Budget Blinds";
-const outDir = resolve(process.argv[3] ?? "/tmp/hfc-shots");
-mkdirSync(outDir, { recursive: true });
+const { web, api } = resolveBase();
+const dir = outDir(3);
+const HERO = 'section[aria-label="Network vital signs"]';
+const TILES = `${HERO} ec-kpi-tile`;
+const NUMERIC = `${HERO} ec-kpi-tile .tile-value.tnum`; // a rendered, real number
 
-const shot = (page, name) => page.screenshot({ path: resolve(outDir, name), fullPage: true });
-const KPIS = 'section[aria-label="Key performance indicators"] button';
-
-const browser = await chromium.launch({ args: ["--no-sandbox"] });
-const page = await browser.newPage({ viewport: { width: 1100, height: 850 } });
-// Point the SPA at a specific API before any app code runs (parallel worktrees
-// may hold :5180; CORS is open so a cross-origin base is fine).
-if (API_BASE) {
-  await page.addInitScript((base) => { window.__API_BASE__ = base; }, API_BASE);
-  console.log(`API base override: ${API_BASE}`);
-}
-const fails = [];
-page.on("console", (m) => { if (m.type() === "error") fails.push(m.text()); });
+const { browser, page, errors } = await launch({ width: 1280, height: 900, api });
+const shot = shotter(page, dir);
 
 try {
-  // 1. load SPA + pick the tenant (brand)
-  await page.goto(WEB, { waitUntil: "networkidle" });
-  await page.waitForSelector(".chip", { timeout: 15000 });
-  await page.getByRole("button", { name: brandName, exact: true }).click();
-  console.log(`selected tenant "${brandName}"`);
+  // 1. enter at the shell, then SPA-navigate to the Executive surface explicitly.
+  await gotoReady(page, web, "nav.nav");
+  if (api) console.log(`API base override: ${api}`);
+  await page.getByRole("link", { name: "Executive" }).click();
 
-  // 2. go to the dashboard (stay in the SPA so the tenant signal persists)
-  await page.getByRole("link", { name: "Dashboard" }).click();
-  await page.waitForSelector("h1:has-text('Operations Dashboard')", { timeout: 10000 });
-  await page.waitForSelector(KPIS, { timeout: 10000 });
-  const kpiCount = await page.locator(KPIS).count();
-  console.log(`dashboard loaded; KPI tiles: ${kpiCount}`);
+  // 2. the command center + hero tiles must actually render data (not skeletons).
+  await page.waitForSelector("h1:has-text('Network Operations Command Center')", { timeout: 15000 });
+  await page.waitForSelector(TILES, { timeout: 20000 });
+  const tileCount = await page.locator(TILES).count();
+  await page.waitForSelector(NUMERIC, { timeout: 15000 }); // ≥1 KPI with a real value
+  await page.waitForTimeout(700); // let the count-up + sparklines settle
+  const numericCount = await page.locator(NUMERIC).count();
+  console.log(`executive command center: ${tileCount} KPI tiles, ${numericCount} with numbers`);
+  if (!numericCount) throw new Error("hero KPIs rendered but none show a number — blank read-model?");
 
-  // 3. desktop screenshot
-  await page.waitForTimeout(400); // let the sparklines/funnel settle
-  await shot(page, "dashboard-1-desktop.png");
-
-  // 4. open an action row -> detail drawer
-  const rows = page.locator("table tbody tr");
-  if (await rows.count()) {
-    await rows.first().click();
-    await page.waitForSelector("[role='dialog']", { timeout: 5000 });
-    console.log("opened detail drawer");
-    await shot(page, "dashboard-2-drawer.png");
-
-    // 5. exercise the live deposit wiring if the row is unpaid
-    const send = page.getByRole("button", { name: /Send deposit link/ });
-    if (await send.count()) {
-      await send.first().click();
-      await page.waitForSelector("[role='dialog']", { state: "detached", timeout: 8000 });
-      console.log("sent deposit -> drawer closed, read-model reloaded");
-    } else {
-      await page.keyboard.press("Escape");
-    }
-  } else {
-    console.log("no action rows for this brand/period (clean funnel)");
-  }
-
-  // 6. mobile viewport (responsive reflow — no reload, keeps the tenant signal)
-  await page.waitForSelector(KPIS, { timeout: 10000 });
+  // 3. screenshots
+  await shot("dashboard-1-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
-  await shot(page, "dashboard-3-mobile.png");
+  await shot("dashboard-3-mobile.png");
 
-  console.log(`\nSaved screenshots to ${outDir}/dashboard-{1-desktop,2-drawer,3-mobile}.png`);
-  if (fails.length) { console.error("console errors:", fails); process.exitCode = 2; }
+  console.log(`\nSaved screenshots to ${dir}/: dashboard-1-desktop.png, dashboard-3-mobile.png`);
+  if (errors.length) { console.error("console errors:", errors); process.exitCode = 2; }
 } catch (e) {
-  await shot(page, "dashboard-error.png").catch(() => {});
+  await shot("dashboard-error.png").catch(() => {});
   console.error("DRIVE FAILED:", e.message, "\n(saved dashboard-error.png)");
   process.exitCode = 1;
 } finally {
