@@ -50,7 +50,7 @@
   position: relative; display: grid; grid-template-columns: 3px 1fr auto 16px;
   align-items: center; gap: 14px; padding: 12px 14px 12px 0;
   border-radius: var(--r-md); border: 1px solid var(--surface-line);
-  background: rgba(255,255,255,.012); cursor: pointer; outline: none; overflow: hidden;
+  background: rgba(255,255,255,.012); cursor: pointer; outline: none; overflow: visible;
   transition: background var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
 }
 .wl-row:hover, .wl-row:focus-visible { background: var(--bg-3); transform: translateX(2px); }
@@ -65,7 +65,7 @@
 
 .wl-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-left: 14px; }
 .wl-l1 { display: flex; align-items: center; gap: 9px; }
-.wl-flag { font-size: 13.5px; font-weight: 600; color: var(--ink-0); }
+.wl-flag { font-size: 13.5px; font-weight: 600; color: var(--ink-0); line-height: 1.45; }
 .wl-cat {
   font-size: 9.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
   color: var(--ink-3); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--surface-line);
