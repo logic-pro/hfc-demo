@@ -19,7 +19,7 @@ export const routes: Routes = [
     path: 'dashboard',
     title: 'HFC · Franchisee Operations',
     loadComponent: () =>
-      import('./dashboard-placeholder').then((m) => m.DashboardPlaceholderComponent),
+      import('./franchisee/dashboard-page.component').then((m) => m.DashboardPageComponent),
   },
   { path: '**', redirectTo: '' },
 ];

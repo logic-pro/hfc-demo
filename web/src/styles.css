@@ -122,3 +122,10 @@ button { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
+
+/* ── Franchisee operator dashboard (/dashboard) uses Tailwind UTILITIES ONLY ──
+   No preflight import — avoids resetting the booking SPA + corporate dashboard
+   base styles. Utility classes + theme tokens only. */
+@layer theme, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
