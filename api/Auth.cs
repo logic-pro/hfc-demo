@@ -25,6 +25,16 @@ public static class HfcClaims
 {
     public const string FranchiseeId = "franchisee_id";  // the isolation key
     public const string BrandId = "brand_id";             // the grouping
+    // Franchisor (read-down) role. A `corporate` value admits the executive
+    // dashboard endpoints via the "Corporate" policy; a franchisee principal
+    // carries `franchisee_id` instead and is tenant-scoped, never corporate.
+    public const string CorporateRole = "corporate";
+}
+
+// Authorization policy names (one source of truth for endpoint .RequireAuthorization).
+public static class HfcPolicies
+{
+    public const string Corporate = "Corporate";
 }
 
 // Defaults for the LOCAL/TEST issuer (symmetric key). In production these are
@@ -84,6 +94,31 @@ public static class DevTokens
             signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    // Mint a CORPORATE (franchisor) token: a verified principal carrying the
+    // corporate ROLE claim and NO franchisee_id — so the dashboard scope resolves
+    // to the corporate lens and the "Corporate" policy admits it. Additive sibling
+    // of Mint(); the franchisee path above is unchanged. Same dev signing/issuer/
+    // audience/lifetime, so it travels the identical validation pipeline.
+    public static string MintCorporate(string? signingKey = null,
+        string issuer = AuthDefaults.Issuer, string audience = AuthDefaults.Audience,
+        TimeSpan? lifetime = null)
+    {
+        var creds = new SigningCredentials(AuthDefaults.DevKey(signingKey),
+            SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "corporate@dev"),
+                new Claim(ClaimTypes.Role, HfcClaims.CorporateRole),
+            },
+            notBefore: DateTime.UtcNow.AddMinutes(-1),
+            expires: DateTime.UtcNow.Add(lifetime ?? TimeSpan.FromHours(8)),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }
 
 public static class AuthExtensions
@@ -130,7 +165,15 @@ public static class AuthExtensions
                     };
                 }
             });
-        services.AddAuthorization();
+        // Authorization: the "Corporate" policy gates the franchisor read-down
+        // (executive dashboard) endpoints. RequireRole matches the corporate role
+        // claim minted above (default RoleClaimType = ClaimTypes.Role). Franchisee
+        // tenancy is unaffected — it flows through the query filter, not a policy.
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy(HfcPolicies.Corporate, policy =>
+                policy.RequireRole(HfcClaims.CorporateRole));
+        });
         return services;
     }
 }
