@@ -19,11 +19,13 @@ builder.Services.AddHfcAuth(builder.Configuration);
 // AI-assisted structured intake (free text -> typed, human-verifiable draft).
 builder.Services.AddSingleton<IntakeService>();
 
-// Dashboard read model (corporate roll-up plane). In-memory STUB shaped like
-// CONTRACT §1 today; swap for an EF-backed IDashboardReadModel over Alpha's
-// `territory_period_summary` when D2/D3 land — same interface, no shape change.
-// Singleton: the data is baked once at boot (the RecomputeRollup stand-in).
-builder.Services.AddSingleton<IDashboardReadModel, StubDashboardReadModel>();
+// Dashboard read model (corporate roll-up plane). EF-backed: reads Alpha's
+// materialized `territory_period_summary` + `watchlist_flag` (CONTRACT §1) behind
+// the IDashboardReadModel seam — same interface, no DTO/shape change vs the stub.
+// Singleton: baked once on first resolution, after Seed + RecomputeRollup have run
+// in the startup block below. (StubDashboardReadModel stays as the in-memory
+// reference/fallback; flip this one line back to it to run without a DB.)
+builder.Services.AddSingleton<IDashboardReadModel, EfDashboardReadModel>();
 builder.Services.AddScoped<DashboardScopeHolder>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

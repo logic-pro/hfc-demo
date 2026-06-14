@@ -79,7 +79,14 @@ public sealed record TerritoryDim(
     int TerritoryId, string TerritoryName, int BrandId, string BrandName,
     int RegionId, string RegionName, int? FranchiseeId, string FranchiseeName,
     string OpenDate, string TenureBand, string Archetype, string Status,
-    double Lat, double Lng);
+    double Lat, double Lng,
+    // Operational franchisee SLUG (Franchisee.Id) carried alongside the numeric
+    // FranchiseeId — CONTRACT §1 v1.2's `franchisee_slug`. The bridge Bravo's RBAC
+    // franchisee lens matches on: Slice A's token claim is the slug, so the scope
+    // resolver compares claim→dim slug-to-slug instead of fail-closing on the
+    // numeric id mismatch. Trailing-optional so it stays purely additive (the stub
+    // leaves it "" — its franchisee lens was already fail-closed by design).
+    string FranchiseeSlug = "");
 
 public sealed record DriverData(
     string SubScore, string MetricKey, string Label, double Value, double Benchmark,

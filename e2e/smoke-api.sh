@@ -85,15 +85,30 @@ chk "$mc" "24" "map: corporate sees all 24 dots"
 chk "$(code "$B/api/territories/9999/health-score")" "404" "health-score: unknown territory -> 404"
 
 # RBAC boundary — a franchisee token is scoped from the CLAIM (not a header):
+# A booking-only operational franchisee (budget-blinds-irvine) owns NO dashboard
+# territories, so its franchisee lens is fail-closed to 0 — and it still can't
+# open corporate or read any territory's score.
 FT=$(tok budget-blinds-irvine)
-# franchisee -> fail-closed registry (own territories only; 0 until Alpha's
-# read-model franchiseeId is reconciled with the slug claim — INTEGRATION.md #1)
 ftc=$(curl -s -H "Authorization: Bearer $FT" "$B/api/territories" | jget "['totalCount']")
-chk "$ftc" "0" "territories: franchisee lens fail-closed (own only)"
+chk "$ftc" "0" "territories: non-dashboard franchisee fail-closed (own only)"
 # franchisee cannot open the corporate roll-up -> 403
 chk "$(code -H "Authorization: Bearer $FT" "$B/api/dashboard/corporate")" "403" "corporate roll-up: franchisee -> 403"
 # franchisee cannot read a territory outside its scope -> 403 (cross-tenant)
 chk "$(code -H "Authorization: Bearer $FT" "$B/api/territories/1/health-score")" "403" "health-score: cross-tenant -> 403"
+
+# Franchisee lens on REAL data (slug↔read-model reconciled, INTEGRATION.md #1):
+# the read model carries each row's franchisee_slug, so a DASHBOARD operator's
+# token (the claim IS that slug) is hard-scoped to exactly its own territories.
+# Pacific Shade Partners LLC operates only Orange County North (territory 1).
+OP=$(tok pacific-shade-partners-llc)
+opc=$(curl -s -H "Authorization: Bearer $OP" "$B/api/territories" | jget "['totalCount']")
+chk "$opc" "1" "territories: dashboard franchisee scoped to its own (1)"
+# it CAN read its own territory's score -> 200
+chk "$(code -H "Authorization: Bearer $OP" "$B/api/territories/1/health-score")" "200" "health-score: own territory -> 200"
+# but NOT a territory it does not operate -> 403 (cross-tenant)
+chk "$(code -H "Authorization: Bearer $OP" "$B/api/territories/2/health-score")" "403" "health-score: non-own territory -> 403"
+# and still cannot open the corporate roll-up -> 403
+chk "$(code -H "Authorization: Bearer $OP" "$B/api/dashboard/corporate")" "403" "corporate roll-up: dashboard franchisee -> 403"
 # NPS: record a post-service response for budget-blinds-irvine's appointment -> 201
 chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
 
