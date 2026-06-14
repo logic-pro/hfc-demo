@@ -76,11 +76,18 @@ resource api 'Microsoft.Web/sites@2023-12-01' = {
       minTlsVersion: '1.2'
       appSettings: [
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
+        // Demo runs in Development so the built-in dev-login (no external IdP) works.
+        { name: 'ASPNETCORE_ENVIRONMENT', value: 'Development' }
+        // Cold start + EF create/seed on F1 can exceed the default 230s container
+        // start limit and trip a crash-loop; give it generous headroom.
+        { name: 'WEBSITES_CONTAINER_START_TIME_LIMIT', value: '900' }
         // SQL path: managed identity (Authentication=Active Directory Default), no password.
-        // SQLite path: a file under /home (App Service persists /home across restarts).
+        // SQLite path (default): an EPHEMERAL file under /tmp. /tmp is wiped on each
+        // container start, so every boot reseeds a clean DB — this sidesteps the
+        // startup rebuild crash seen against a PERSISTED (/home) SQLite DB.
         { name: 'ConnectionStrings__Default', value: deploySql
             ? 'Server=tcp:${sqlServerName}${environment().suffixes.sqlServerHostname},1433;Database=${sqlDbName};Authentication=Active Directory Default;Encrypt=True;'
-            : 'Data Source=/home/hfc-demo.db' }
+            : 'Data Source=/tmp/hfc-demo.db' }
       ]
     }
   }
