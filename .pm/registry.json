@@ -28,10 +28,10 @@
       "_note": "FREE slot — assign next backlog item via .pm/outbox/delta/; set allowed_paths + skills per task. For a real feature, branch feat/<area> off slot/delta." },
 
     { "name": "echo",    "dir": "hfc-demo-worktrees/echo", "branch": "slice-d-franchisee-dashboard",
-      "status": "active", "task": "Franchisee operations dashboard UI (merge #5, holding for charlie)", "free": false,
-      "allowed_paths": ["web/src/app/franchisee/**","api/DashboardReadModel.cs"],
-      "skills": ["frontend-bi-dashboard-architect","worktree-summary-reporter","worktree-continuation"],
-      "_note": "Rename dir → hfc-demo-worktrees/echo only AFTER this PR merges. DIR-COLLISION to resolve in decisions.md: exec-ui owns web/src/app/dashboard/, franchisee moves to web/src/app/franchisee/." },
+      "status": "assigned", "task": "franchisee dashboard e2e screenshot driver (e2e/drive-franchisee.mjs)", "free": false,
+      "allowed_paths": ["e2e/**"],
+      "skills": ["start-lane","worktree-summary-reporter","worktree-continuation"],
+      "_note": "Franchisee dashboard UI shipped (merge #5, PR #8). Reassigned to the e2e driver. Run /start-lane in the echo window to pick up .pm/outbox/echo/." },
 
     { "name": "wt-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "chore/modularize-endpoints",
       "status": "holding-until-round1-done", "task": "Hub-file modularization (round-2 enabler)", "free": false,

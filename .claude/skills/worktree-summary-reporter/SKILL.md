@@ -92,7 +92,13 @@ Dependencies on other worktrees, likely conflicts, files likely to overlap, requ
 3. Then:
 4. Optional cleanup:
 
-## 11. Copy-Paste Summary
+## 11. Self-evaluation (honest retro — for the PM to learn from)
+* **What went well:**
+* **Problems hit / what was hard:**
+* **Where I'd improve next time:** (approach, test coverage, scope discipline, comms/coordination)
+* **Confidence in this work:** high / medium / low — and why
+
+## 12. Copy-Paste Summary
 **Status:** Complete / Partial / Blocked
 **Main outcome:**
 **Biggest risk:**

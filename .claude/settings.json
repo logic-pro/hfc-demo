@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch)",
+      "Bash(git fetch *)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/load-assignment.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.pm/hooks/report-on-stop.sh" }
+        ]
+      }
+    ]
+  }
+}

@@ -14,9 +14,9 @@ set -euo pipefail
 
 LANE="${1:?usage: report-to-pm.sh <lane> [report-file]}"
 SRC="${2:-/dev/stdin}"
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-PM="$ROOT/.pm"
-[ -d "$PM" ] || { echo "error: no .pm/ control plane at $PM" >&2; exit 1; }
+# Resolve the SHARED bus via git's common dir (works from any worktree).
+PM="$(cd "$(dirname "$(git rev-parse --git-common-dir 2>/dev/null)")" 2>/dev/null && pwd)/.pm"
+[ -d "$PM" ] || { echo "error: no shared .pm/ control plane (resolved: $PM)" >&2; exit 1; }
 
 # UTC timestamp without ':' (filename-safe)
 TS="$(date -u +%Y-%m-%dT%H-%M-%SZ 2>/dev/null || echo "unknown-time")"
@@ -26,7 +26,7 @@ BODY="$(cat "$SRC")"
 
 printf '%s\n' "$BODY" > "$REPORT"
 printf '# Status: %s\n_Updated %s (branch %s)_\n\n%s\n' \
-  "$LANE" "$TS" "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')" "$BODY" \
+  "$LANE" "$TS" "$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')" "$BODY" \
   > "$PM/status/${LANE}.md"
 
 echo "report  → $REPORT"

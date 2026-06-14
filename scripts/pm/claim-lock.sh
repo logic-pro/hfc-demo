@@ -12,8 +12,7 @@ set -euo pipefail
 
 ACTION="${1:?usage: claim-lock.sh claim|release|check <area> [lane] [hours]}"
 AREA="${2:?missing <area> (e.g. api-program, angular-shell, seed)}"
-ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-LOCKS="$ROOT/.pm/locks"; mkdir -p "$LOCKS"
+LOCKS="$(cd "$(dirname "$(git rev-parse --git-common-dir 2>/dev/null)")" 2>/dev/null && pwd)/.pm/locks"; mkdir -p "$LOCKS"
 LOCK="$LOCKS/${AREA}.lock"
 
 case "$ACTION" in
