@@ -93,6 +93,17 @@ public static class Rollup
         var reports = db.MonthlyReports.IgnoreQueryFilters().AsNoTracking()
             .Where(r => terrIds.Contains(r.TerritoryId)).ToList();
 
+        // ── D-NPS-SWAP: NPS now MEASURED from real survey rows ─────────────────
+        // NPS leaves the seeded reported plane and is derived from NpsSurvey rows.
+        // Surveys denormalize TerritoryId, so one GROUP BY TerritoryId yields the
+        // territory-resolvable NPS (% promoters − % detractors over the 0–10 Score).
+        // A territory with no survey responses falls back to its seeded NpsScore so
+        // the demo's historical signal stays intact and no period reads as 0.
+        var npsByTerr = db.NpsSurveys.IgnoreQueryFilters().AsNoTracking()
+            .Where(s => terrIds.Contains(s.TerritoryId)).ToList()
+            .GroupBy(s => s.TerritoryId)
+            .ToDictionary(g => g.Key, g => Nps(g.Select(s => s.Score)));
+
         // ── Pass A: assemble raw per-(territory, period) facts ────────────────
         var rows = new List<Row>();
         foreach (var r in reports)
@@ -127,7 +138,10 @@ public static class Rollup
                 RoyaltyCollected = r.RoyaltyCollected,
                 CollectionRate = royaltyRevenue > 0 ? r.RoyaltyCollected / royaltyRevenue : 0,
                 SameTerritoryGrowth = r.SameTerritoryGrowth,
-                NpsScore = r.NpsScore,
+                // measured from surveys (D-NPS-SWAP); seeded report value is the
+                // fallback only when a territory has no survey responses yet.
+                NpsScore = npsByTerr.TryGetValue(r.TerritoryId, out var measuredNps)
+                    ? measuredNps : r.NpsScore,
                 GoogleRating = r.GoogleRating,
                 QuoteToClose = r.QuoteToClose,
                 AsOfMeasured = sa.Total > 0 ? sa.AsOf : r.PeriodEnd,
@@ -309,6 +323,18 @@ public static class Rollup
         if (open is null) return "established";
         int months = (asOf.Year - open.Value.Year) * 12 + asOf.Month - open.Value.Month;
         return months < 6 ? "launch" : months < 18 ? "ramping" : months < 48 ? "established" : "mature";
+    }
+
+    // Net Promoter Score over the canonical 0–10 survey scale: %promoters −
+    // %detractors, scaled to the −100..100 NPS range and rounded to an int.
+    // Promoter 9–10 / Passive 7–8 / Detractor 0–6 (NpsSurvey contract).
+    private static int Nps(IEnumerable<int> scores)
+    {
+        var l = scores.ToList();
+        if (l.Count == 0) return 0;
+        int promoters = l.Count(s => s >= 9);
+        int detractors = l.Count(s => s <= 6);
+        return (int)Math.Round((promoters - detractors) * 100.0 / l.Count);
     }
 
     private static double Avg(IEnumerable<double> xs) { var l = xs.ToList(); return l.Count > 0 ? l.Average() : 0; }
