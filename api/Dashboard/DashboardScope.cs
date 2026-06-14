@@ -56,15 +56,17 @@ public static class DashboardScopeResolver
             // resolved from the read-model dimension. An id that matches no
             // territory yields an EMPTY allow-set => fail-closed (no rows), never all.
             //
-            // POST-MERGE (INTEGRATION.md #1): the read model keys franchisee by
-            // INTEGER (CONTRACT §1); Slice A's claim is the operational franchisee
-            // SLUG. Reconciling them is Alpha's "rebase franchiseeId onto A's model"
-            // task (alpha merges before bravo). Until then a real franchisee token
-            // fail-closes to 0 territories here — safe by design; the corporate lens
-            // (the demo default) and the 403 / unknown-id boundary are unaffected.
+            // Slug↔read-model reconciliation (INTEGRATION.md #1, now landed): the read
+            // model keys franchisee by INTEGER (CONTRACT §1), but each dimension also
+            // carries the operational franchisee SLUG (CONTRACT §1 v1.2 `franchisee_slug`,
+            // sourced from `territory_period_summary.FranchiseeSlug`). Slice A's claim
+            // IS that slug, so we match claim→dim slug-to-slug. A franchisee with no
+            // dashboard territories (e.g. a booking-only operational franchisee) still
+            // resolves to an EMPTY set — fail-closed — and the corporate lens / 403 /
+            // unknown-id boundaries are unaffected.
             var allowed = readModel.Territories
-                .Where(t => string.Equals(t.FranchiseeId?.ToString(), franchiseeId,
-                    StringComparison.OrdinalIgnoreCase))
+                .Where(t => !string.IsNullOrEmpty(t.FranchiseeSlug)
+                    && string.Equals(t.FranchiseeSlug, franchiseeId, StringComparison.OrdinalIgnoreCase))
                 .Select(t => t.TerritoryId)
                 .ToHashSet();
 
