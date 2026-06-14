@@ -16,6 +16,18 @@
 .sum-badge[data-sev='medium'] { color: var(--health-warning); background: rgba(255,159,69,.1); }
 .sum-terr { font-size: 11.5px; color: var(--ink-3); }
 
+/* ── Brand scope chip (shared cross-filter) — clears back to portfolio ─────── */
+.wl-scope {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; color: var(--ink-1);
+  background: rgba(255,255,255,.03); border: 1px solid var(--ink-4);
+  transition: all var(--t-fast) var(--ease);
+}
+.wl-scope:hover { color: var(--ink-0); border-color: var(--ink-3); }
+.wl-scope-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px -1px var(--accent); }
+.wl-scope-x { font-size: 10px; color: var(--ink-3); margin-left: 1px; }
+
 /* ── Severity filter ──────────────────────────────────────────────────────── */
 .wl-filter { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.02); border: 1px solid var(--surface-line); align-self: flex-start; }
 .wf-btn {

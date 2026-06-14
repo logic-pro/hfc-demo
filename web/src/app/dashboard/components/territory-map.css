@@ -2,6 +2,21 @@
 
 .map-card { padding: 18px 20px 16px; }
 
+/* ── Executive insight line — the data-derived so-what under the title ──────── */
+.map-insight {
+  display: flex; align-items: baseline; gap: 8px;
+  margin: 12px 0 2px;
+  font-size: 13px; line-height: 1.45; color: var(--ink-1);
+}
+.map-insight .mi-mark {
+  flex: none; width: 7px; height: 7px; border-radius: 50%;
+  transform: translateY(1px);
+  background: var(--health-critical);
+  box-shadow: 0 0 9px -1px var(--health-critical);
+}
+.map-insight.clear { color: var(--ink-2); }
+.map-insight.clear .mi-mark { background: var(--health-strong); box-shadow: 0 0 9px -1px var(--health-strong); }
+
 /* ── Header + controls ───────────────────────────────────────────────────── */
 .map-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .map-title { display: flex; flex-direction: column; gap: 6px; }

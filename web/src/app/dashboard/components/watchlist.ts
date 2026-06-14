@@ -40,6 +40,11 @@ const CATEGORY_LABEL: Record<string, string> = {
           <h2>Where intervention is needed now</h2>
         </div>
         <div class="wl-sum">
+          @if (activeBrand(); as b) {
+            <button class="wl-scope" (click)="clearBrand.emit()" [attr.aria-label]="'Clear ' + b + ' brand scope'">
+              <span class="wl-scope-dot"></span>{{ b }}<span class="wl-scope-x" aria-hidden="true">✕</span>
+            </button>
+          }
           <span class="sum-badge" data-sev="high">{{ counts().high }} high</span>
           <span class="sum-badge" data-sev="medium">{{ counts().medium }} medium</span>
           <span class="sum-terr">across {{ territoryCount() }} territories</span>
@@ -110,7 +115,9 @@ const CATEGORY_LABEL: Record<string, string> = {
         </ul>
       } @else {
         <p class="wl-empty">
-          No {{ sev() === 'all' ? '' : sev() + ' ' }}flags open — the network is clear for this filter.
+          No {{ sev() === 'all' ? '' : sev() + ' ' }}flags open
+          @if (activeBrand(); as b) { for {{ b }} } @else { across the network }
+          for this filter.
         </p>
       }
     </section>
@@ -120,25 +127,39 @@ const CATEGORY_LABEL: Record<string, string> = {
 export class WatchlistComponent {
   @Input({ required: true }) set flags(v: WatchlistFlag[]) { this._flags.set(v ?? []); }
   @Input() loading = false;
+  // Shared brand scope (D17): a brand picked on the map/table/distribution scopes the
+  // action queue to that brand too, so the whole dashboard cross-filters as one cockpit.
+  // null = portfolio (every flag). The chip clears it back through (clearBrand).
+  @Input() set brandScope(v: string | null) { this._brand.set(v ?? null); }
   @Output() select = new EventEmitter<number>();
+  @Output() clearBrand = new EventEmitter<void>();
 
   private readonly _flags = signal<WatchlistFlag[]>([]);
+  private readonly _brand = signal<string | null>(null);
+  readonly activeBrand = this._brand.asReadonly();
   readonly sev = signal<SevFilter>('all');
   readonly skeletons = Array.from({ length: 4 });
 
   private static readonly SEV_RANK = { high: 0, medium: 1, low: 2 } as const;
 
+  // Brand-scoped set — every count, badge and row derives from this so the whole
+  // panel (not just the list) re-scopes when a brand is selected elsewhere.
+  readonly scoped = computed<WatchlistFlag[]>(() => {
+    const b = this._brand();
+    return b === null ? this._flags() : this._flags().filter((f) => f.brandName === b);
+  });
+
   readonly counts = computed(() => {
     const c = { high: 0, medium: 0, low: 0 };
-    for (const f of this._flags()) c[f.severity]++;
+    for (const f of this.scoped()) c[f.severity]++;
     return c;
   });
-  readonly total = computed(() => this._flags().length);
+  readonly total = computed(() => this.scoped().length);
 
   // Filtered + severity-sorted (then most-below-threshold first within a severity).
   readonly rows = computed<WatchlistFlag[]>(() => {
     const s = this.sev();
-    const list = s === 'all' ? this._flags() : this._flags().filter((f) => f.severity === s);
+    const list = s === 'all' ? this.scoped() : this.scoped().filter((f) => f.severity === s);
     return [...list].sort((a, b) => {
       const r = WatchlistComponent.SEV_RANK[a.severity] - WatchlistComponent.SEV_RANK[b.severity];
       return r !== 0 ? r : this.gap(b) - this.gap(a);

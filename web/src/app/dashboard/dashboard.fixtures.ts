@@ -161,7 +161,11 @@ export function buildCorporateDashboard(): CorporateDashboard {
     },
     {
       metricKey: 'same_territory_growth_yoy', label: 'Same-Territory Growth YoY', value: 0.043,
-      unit: 'percent', trendDirection: 'up', trendPercent: 4.3,
+      // The value IS a YoY growth rate — so its delta must compare against a
+      // DIFFERENT reference, not restate itself ("4.3%" + "▲4.3% YoY"). Here:
+      // 4.3% actual vs a 5.0% plan target = 0.7pt behind plan (the kpi-tile keys
+      // the "vs 5.0% plan" basis caption off this metricKey).
+      unit: 'percent', trendDirection: 'down', trendPercent: -0.7,
       provenanceType: 'seeded', asOfDate: ASOF_REPORTED, refreshStatus: 'seeded', confidenceLevel: 'low',
       spark: spark(0.043, 0.03),
     },

@@ -45,6 +45,12 @@ interface MapPoint {
         </div>
       </header>
 
+      <!-- Executive insight — the so-what, derived from the active set + scope.
+           Updates with the brand filter and the at-risk overlay; never hardcoded. -->
+      <p class="map-insight" [class.clear]="insight().clear">
+        <span class="mi-mark" aria-hidden="true"></span>{{ insight().text }}
+      </p>
+
       <div class="map-stage" [style.aspect-ratio]="W + ' / ' + H">
         <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="xMidYMid meet" class="map-svg">
           <defs>
@@ -179,6 +185,33 @@ export class TerritoryMapComponent {
   });
 
   readonly activeCount = computed(() => this.points().filter((p) => p.active).length);
+
+  // One-line executive read-out: how much risk is in the current view and WHERE it
+  // concentrates — the so-what an average map can't say. Derived from the active
+  // (in-scope) at-risk set, grouped by region, so it re-states with the brand filter
+  // and the at-risk overlay. Composite health is measured, so this is a confident claim.
+  readonly insight = computed<{ text: string; clear: boolean }>(() => {
+    const active = this.points().filter((p) => p.active);
+    const atRisk = active.filter((p) => p.atRisk);
+    const bf = this.brandFilter();
+    const brandName = bf === null ? null : this._terr().find((t) => t.brandId === bf)?.brandName ?? null;
+    const where = brandName ? brandName : 'the network';
+    if (!active.length) return { text: `No territories match the current filter.`, clear: true };
+    if (!atRisk.length) {
+      return { text: `All ${active.length} territories in view for ${where} are above the at-risk floor.`, clear: true };
+    }
+    const byRegion = new Map<string, number>();
+    for (const p of atRisk) byRegion.set(p.item.regionName, (byRegion.get(p.item.regionName) ?? 0) + 1);
+    const ranked = [...byRegion.entries()].sort((a, b) => b[1] - a[1]);
+    const top = ranked.slice(0, 2).map(([r]) => r);
+    const conc = top.length === 1 ? `the ${top[0]}` : `the ${top[0]} and ${top[1]}`;
+    const n = atRisk.length;
+    const noun = n === 1 ? 'territory' : 'territories';
+    return {
+      text: `${n} of ${active.length} ${noun} at risk across ${where}, concentrated in ${conc}.`,
+      clear: false,
+    };
+  });
 
   brandAccent(id: number): string { return brandAccent(id); }
   bandOf(score: number): string { return band(score); }

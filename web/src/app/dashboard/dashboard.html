@@ -96,6 +96,8 @@
   <ec-watchlist
     [flags]="watchlist()"
     [loading]="watchlistLoading()"
+    [brandScope]="selectedBrand()?.brandName ?? null"
+    (clearBrand)="selectBrand(null)"
     (select)="selectTerritoryId($event)"
   />
 </div>
