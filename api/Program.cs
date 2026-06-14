@@ -1,4 +1,5 @@
 using HfcDemo;
+using HfcDemo.Dashboard;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,12 @@ builder.Services.AddHfcAuth(builder.Configuration);
 // AI-assisted structured intake (free text -> typed, human-verifiable draft).
 builder.Services.AddSingleton<IntakeService>();
 
+// Dashboard read model (corporate roll-up plane). In-memory STUB shaped like
+// CONTRACT §1 today; swap for an EF-backed IDashboardReadModel over Alpha's
+// `territory_period_summary` when D2/D3 land — same interface, no shape change.
+// Singleton: the data is baked once at boot (the RecomputeRollup stand-in).
+builder.Services.AddSingleton<IDashboardReadModel, StubDashboardReadModel>();
+builder.Services.AddScoped<DashboardScopeHolder>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -56,6 +63,20 @@ app.Use(async (ctx, next) =>
 {
     var tenant = ctx.RequestServices.GetRequiredService<TenantContext>();
     TenantResolver.Populate(tenant, ctx.User);
+    await next();
+});
+
+// ── Dashboard RBAC scope (D10): resolve role → allowed territory ids ─────────
+// Resolved per request and filtered BEFORE any read-model query. Sourced from the
+// VERIFIED token claim on ctx.User (Slice A's seam) — never a client header; runs
+// after UseAuthentication so the principal is validated. Default lens is
+// `corporate` (all); a `franchisee_id` claim fail-closes the caller to its own
+// territories. (Rewired header → claim per INTEGRATION.md #1.)
+app.Use(async (ctx, next) =>
+{
+    var holder = ctx.RequestServices.GetRequiredService<DashboardScopeHolder>();
+    var readModel = ctx.RequestServices.GetRequiredService<IDashboardReadModel>();
+    holder.Scope = DashboardScopeResolver.ScopeFor(ctx.User, readModel);
     await next();
 });
 
@@ -187,6 +208,8 @@ app.MapPost("/api/intake/parse", async (IntakeRequest req, IntakeService intake,
     return Results.Ok(draft);
 }).RequireAuthorization();
 
+// ── Dashboard endpoints (D6–D9): read-only projections over the read model ──
+app.MapDashboard();
 // Record a post-service NPS response (the Durable NpsWorkflow's review-gen runs
 // off the same score). This is the row the dashboards read — so it's the source
 // of truth that flips NPS from seeded to measured. One survey per appointment;

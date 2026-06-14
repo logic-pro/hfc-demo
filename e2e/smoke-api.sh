@@ -58,6 +58,42 @@ chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer
 seen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/appointments" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$seen" "0" "other franchisee sees 0 of budget-blinds-irvine's appointments"
 
+# ── Dashboard API (D6–D9 + v1.1 map): RBAC scope is now sourced from the token
+# claim, not a header. Anonymous = the zero-config corporate lens (sees all);
+# a franchisee token is hard-scoped to its own territories (fail-closed). ───────
+jget() { python3 -c "import sys,json;d=json.load(sys.stdin);print(d$1)"; }
+
+# 1) corporate vital signs — anonymous resolves to the corporate lens
+sl=$(curl -s "$B/api/dashboard/corporate" | jget "['scope']['scopeLevel']")
+chk "$sl" "corporate" "dashboard/corporate: anonymous -> corporate lens"
+
+# 2) territory registry — corporate sees all 24 territories
+tc=$(curl -s "$B/api/territories" | jget "['totalCount']")
+chk "$tc" "24" "territories: corporate sees all 24"
+
+# 3) health-score — present for a known territory
+chk "$(code "$B/api/territories/1/health-score")" "200" "health-score: territory 1 -> 200"
+
+# 4) watchlist — returns the pre-computed flag rows
+chk "$(code "$B/api/dashboard/watchlist")" "200" "watchlist -> 200"
+
+# 5) map (v1.1, additive) — dot per territory, corporate sees all 24
+mc=$(curl -s "$B/api/dashboard/map" | jget "['totalCount']")
+chk "$mc" "24" "map: corporate sees all 24 dots"
+
+# unknown-id fail-closed: a non-existent territory -> 404 (never another's row)
+chk "$(code "$B/api/territories/9999/health-score")" "404" "health-score: unknown territory -> 404"
+
+# RBAC boundary — a franchisee token is scoped from the CLAIM (not a header):
+FT=$(tok budget-blinds-irvine)
+# franchisee -> fail-closed registry (own territories only; 0 until Alpha's
+# read-model franchiseeId is reconciled with the slug claim — INTEGRATION.md #1)
+ftc=$(curl -s -H "Authorization: Bearer $FT" "$B/api/territories" | jget "['totalCount']")
+chk "$ftc" "0" "territories: franchisee lens fail-closed (own only)"
+# franchisee cannot open the corporate roll-up -> 403
+chk "$(code -H "Authorization: Bearer $FT" "$B/api/dashboard/corporate")" "403" "corporate roll-up: franchisee -> 403"
+# franchisee cannot read a territory outside its scope -> 403 (cross-tenant)
+chk "$(code -H "Authorization: Bearer $FT" "$B/api/territories/1/health-score")" "403" "health-score: cross-tenant -> 403"
 # NPS: record a post-service response for budget-blinds-irvine's appointment -> 201
 chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
 
