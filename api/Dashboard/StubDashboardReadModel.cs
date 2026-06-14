@@ -273,8 +273,11 @@ public sealed class StubDashboardReadModel : IDashboardReadModel
         bool good = higherIsBetter ? value >= benchmark : value <= benchmark;
         double gap = Math.Abs(value - benchmark) / (benchmark == 0 ? 1 : benchmark);
         string severity = gap > 0.25 ? "high" : gap > 0.10 ? "medium" : "low";
+        // refreshStatus follows the provenance plane (CONTRACT §2 v1.3): measured
+        // => "current", seeded => "seeded" — every driver now carries all three.
         return new DriverData(subScore, key, label, value, benchmark,
-            good ? "positive" : "negative", severity, provenance, AsOfMeasured);
+            good ? "positive" : "negative", severity, provenance, AsOfMeasured,
+            provenance == "measured" ? "current" : "seeded");
     }
 
     private static int SeverityRank(string severity) =>

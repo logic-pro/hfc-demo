@@ -60,7 +60,7 @@ public static class DashboardEndpoints
                 s.Notes.Select(n => new ScoreNoteDto(n.Type, n.Message)).ToList(),
                 s.Drivers.Select(d => new DriverDto(
                     d.SubScore, d.MetricKey, d.Label, d.Value, d.Benchmark,
-                    d.Impact, d.Severity, d.ProvenanceType, d.AsOfDate)).ToList());
+                    d.Impact, d.Severity, d.ProvenanceType, d.AsOfDate, d.RefreshStatus)).ToList());
 
             return Results.Ok(dto);
         });

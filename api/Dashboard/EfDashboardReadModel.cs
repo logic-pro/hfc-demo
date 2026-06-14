@@ -236,8 +236,13 @@ public sealed class EfDashboardReadModel : IDashboardReadModel
         string severity = gap > 0.25 ? "high" : gap > 0.10 ? "medium" : "low";
         return new DriverData(subScore, key, label, value, benchmark,
             good ? "positive" : "negative", severity, provenance,
-            asOf?.ToString("yyyy-MM-dd") ?? "");
+            asOf?.ToString("yyyy-MM-dd") ?? "", RefreshFor(provenance));
     }
+
+    // Driver refresh status follows its provenance plane, same as vital signs:
+    // measured (app-native, near-real-time) => "current"; seeded/reported => "seeded".
+    private static string RefreshFor(string provenance) =>
+        provenance == "measured" ? "current" : "seeded";
 
     private static int? ToScore(double? v) => v is null ? null : (int)Math.Round(v.Value);
 

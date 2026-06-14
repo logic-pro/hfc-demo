@@ -90,7 +90,12 @@ public sealed record TerritoryDim(
 
 public sealed record DriverData(
     string SubScore, string MetricKey, string Label, double Value, double Benchmark,
-    string Impact, string Severity, string ProvenanceType, string AsOfDate);
+    string Impact, string Severity, string ProvenanceType, string AsOfDate,
+    // CONTRACT §2 v1.3, additive: drivers now carry refreshStatus too, so EVERY
+    // metric the dashboard emits satisfies the ADR-20 invariant (provenanceType +
+    // asOfDate + refreshStatus). Trailing field — purely additive, existing fields
+    // byte-identical; mirrors the v1.1 (map) / v1.2 (franchisee_slug) precedents.
+    string RefreshStatus = "current");
 
 public sealed record TerritoryScore(
     int TerritoryId, int PeriodId, string TerritoryName, string BrandName, string RegionName,
