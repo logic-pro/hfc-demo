@@ -72,6 +72,39 @@ az webapp deploy -g "$RG" -n "$API_NAME" --src-path "$ROOT/api/api.zip" --type z
 echo "Publishing Functions..."
 (cd "$ROOT/functions" && func azure functionapp publish "$FUNC_NAME")
 
+# 7. Post-deploy HEALTH GATE — don't declare success until the API answers /health.
+#    (App settings that make this "just work" — ASPNETCORE_ENVIRONMENT=Development,
+#    ConnectionStrings__Default=Data Source=/tmp/hfc-demo.db,
+#    WEBSITES_CONTAINER_START_TIME_LIMIT=900 — are baked into main.bicep and applied
+#    by the `az deployment group create` in step 2, so no manual `az webapp config` needed.)
+echo "Waiting for the API to report healthy (https://${API_HOST}/health)..."
+HEALTHY=0
+for i in $(seq 1 60); do
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://${API_HOST}/health" || echo 000)
+  echo "  health[$i/60]: $code"
+  if [ "$code" = "200" ]; then HEALTHY=1; break; fi
+  sleep 10
+done
+if [ "$HEALTHY" -ne 1 ]; then
+  echo "❌ Deploy FAILED the health gate: https://${API_HOST}/health never returned 200." >&2
+  echo "   Inspect logs with: az webapp log tail -g $RG -n $API_NAME" >&2
+  exit 1
+fi
+echo "✅ API healthy."
+
+# 8. Self-verify: dispatch the post-deploy e2e suite against the LIVE url (best-effort).
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+  echo "Triggering post-deploy-e2e against https://${API_HOST} ..."
+  if gh workflow run post-deploy-e2e.yml -f base_url="https://${API_HOST}"; then
+    echo "   post-deploy-e2e dispatched (watch: gh run watch)."
+  else
+    echo "   (could not dispatch post-deploy-e2e — run it manually from the Actions tab)."
+  fi
+else
+  echo "ℹ️  gh CLI not authenticated — skipping auto e2e. Run it manually with:"
+  echo "   gh workflow run post-deploy-e2e.yml -f base_url=https://${API_HOST}"
+fi
+
 echo "
 ✅ Done.
    App (SPA + API) : https://${API_HOST}   (Swagger at /swagger)
