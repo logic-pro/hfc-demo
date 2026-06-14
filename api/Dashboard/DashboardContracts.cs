@@ -80,7 +80,12 @@ public record DriverDto(
     string Impact,
     string Severity,
     string ProvenanceType,
-    string AsOfDate);
+    string AsOfDate,
+    // CONTRACT §2 v1.3, ADDITIVE — appended last so the §2 driver shape stays
+    // byte-identical and Charlie's verbatim fixtures keep deserializing. Closes
+    // the provenance-completeness gap: drivers were the one metric array carrying
+    // only two of the three ADR-20 fields; now every metric carries all three.
+    string RefreshStatus);
 
 // GET /api/dashboard/watchlist
 public record WatchlistDto(IReadOnlyList<WatchlistItemDto> Items, int TotalCount);
