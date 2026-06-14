@@ -1,1 +1,124 @@
-/* You can add global styles to this file, and also import other style files */
+/* ═══════════════════════════════════════════════════════════════════════════
+   OPERATIONS COMMAND CENTER — design system (Charlie / HFC executive dashboard)
+   One language: dark high-contrast canvas, health-encoded color, tabular hero
+   numbers, purposeful motion. No component library — every token is bespoke.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Canvas & surfaces ─────────────────────────────────────────────────── */
+  --bg-0: #080B14;          /* deepest — page void */
+  --bg-1: #0B0F1A;          /* canvas */
+  --bg-2: #101626;          /* raised card */
+  --bg-3: #161E32;          /* card hover / nested */
+  --surface-line: #1E2942;  /* hairline borders */
+  --surface-glow: rgba(95, 227, 192, 0.06); /* inner accent glow */
+
+  /* ── Ink ───────────────────────────────────────────────────────────────── */
+  --ink-0: #F4F7FF;         /* hero numbers */
+  --ink-1: #C7D2E8;         /* primary text */
+  --ink-2: #8A99B8;         /* labels */
+  --ink-3: #5A6B8C;         /* muted / captions */
+  --ink-4: #3A4661;         /* faintest */
+
+  /* ── Health scale — color ONLY ever means health ───────────────────────── */
+  --health-critical: #FF5470;
+  --health-warning:  #FF9F45;
+  --health-fair:     #FFD166;
+  --health-good:     #5FE3C0;
+  --health-strong:   #2FD3A6;
+
+  /* ── Signal accent (the one "look here" color) ─────────────────────────── */
+  --accent:       #5FE3C0;
+  --accent-dim:   #2FD3A6;
+  --accent-glow:  rgba(95, 227, 192, 0.16);
+
+  /* ── Provenance language (D16) ─────────────────────────────────────────── */
+  --prov-measured: #5FE3C0;  /* we measured it */
+  --prov-reported: #7FA8FF;  /* franchisee reported it */
+  --prov-seeded:   #B98CFF;  /* illustrative placeholder */
+
+  /* ── Type ──────────────────────────────────────────────────────────────── */
+  --font-display: 'Space Grotesk', 'SF Pro Display', system-ui, sans-serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Space Grotesk', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ── Geometry & motion ─────────────────────────────────────────────────── */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
+  --gap: 16px;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+  --t-fast: 180ms; --t-base: 280ms; --t-slow: 380ms;
+  --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 30px -12px rgba(0,0,0,.6);
+  --shadow-pop: 0 18px 48px -16px rgba(0,0,0,.75);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background:
+    radial-gradient(1200px 600px at 12% -8%, rgba(95,227,192,.05), transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%, rgba(127,168,255,.05), transparent 55%),
+    var(--bg-1);
+  color: var(--ink-1);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body { font-feature-settings: 'ss01' 1, 'cv01' 1; }
+
+/* Tabular numbers everywhere a figure is shown — alignment is the whole point. */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
+
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; color: var(--ink-0); margin: 0; letter-spacing: -0.01em; }
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+::selection { background: var(--accent-glow); color: var(--ink-0); }
+
+/* Custom scrollbar so even the chrome reads as one product. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-line); border-radius: 8px; border: 2px solid var(--bg-1); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ── Reusable card surface ───────────────────────────────────────────────── */
+.card {
+  background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+.card::before {
+  /* subtle inner top-glow — the "elevated card with inner glow" identity cue */
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,.035), transparent 42%);
+  pointer-events: none;
+}
+
+/* ── Pills / chips ───────────────────────────────────────────────────────── */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  border: 1px solid var(--surface-line);
+  color: var(--ink-2); background: rgba(255,255,255,.02);
+  white-space: nowrap;
+}
+
+.eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
