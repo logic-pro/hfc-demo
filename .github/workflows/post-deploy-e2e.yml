@@ -1,0 +1,66 @@
+name: post-deploy-e2e
+
+# Integration test the LIVE deployment with Playwright + the API smoke suite.
+# This is the "run tests after a successful deploy" gate: point it at the deployed
+# URL and it drives the real app in a real Chromium, asserts, and uploads screenshots.
+#
+# HOW TO TRIGGER:
+#   1. Manually:  Actions tab -> post-deploy-e2e -> Run workflow (set base_url)
+#   2. From the CLI:  gh workflow run post-deploy-e2e.yml -f base_url=https://<app>.azurewebsites.net
+#   3. Chained after deploy: infra/deploy.sh can call (2) once /health is 200
+#      (delta's deploy health-gate task) so every deploy auto-verifies itself.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Deployed base URL to test (SPA + API, same-origin)'
+        required: true
+        default: 'https://hfcdemo-api-pkz2lysbqoabq.azurewebsites.net'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE: ${{ inputs.base_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: '20' }
+
+      - name: Install Playwright + Chromium (with system libs)
+        run: |
+          npm init -y >/dev/null 2>&1 || true
+          npm i --no-save playwright@latest
+          npx --yes playwright install --with-deps chromium
+
+      - name: Wait for the deployment to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "$BASE/health" || echo 000)
+            echo "health: $code"; [ "$code" = "200" ] && exit 0; sleep 5
+          done
+          echo "::error::deployment never returned healthy"; exit 1
+
+      - name: API smoke against the live deploy
+        run: API_BASE="$BASE" bash e2e/smoke-api.sh
+
+      - name: Playwright drivers against the live deploy
+        run: |
+          mkdir -p /tmp/hfc-shots
+          fail=0
+          for d in e2e/drive-*.mjs; do
+            echo "=== $d ==="
+            WEB_URL="$BASE" API_BASE="$BASE" node "$d" "" /tmp/hfc-shots || { echo "::error::$d failed"; fail=1; }
+          done
+          echo "Captured:"; ls -la /tmp/hfc-shots
+          exit $fail   # a driver error fails the gate (real integration assertion)
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-shots
+          path: /tmp/hfc-shots/*.png
+          if-no-files-found: warn
+          retention-days: 14
