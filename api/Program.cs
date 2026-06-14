@@ -64,15 +64,16 @@ app.Use(async (ctx, next) =>
 });
 
 // ── Dashboard RBAC scope (D10): resolve role → allowed territory ids ─────────
-// Resolved per request and filtered BEFORE any read-model query. Header-sourced
-// in the demo (spoofable, like the tenant header — ADR-05); token-claim-sourced
-// in prod. Default lens is `corporate` (all); `franchisee` is fail-closed to its
-// own territories.
+// Resolved per request and filtered BEFORE any read-model query. Sourced from the
+// VERIFIED token claim on ctx.User (Slice A's seam) — never a client header; runs
+// after UseAuthentication so the principal is validated. Default lens is
+// `corporate` (all); a `franchisee_id` claim fail-closes the caller to its own
+// territories. (Rewired header → claim per INTEGRATION.md #1.)
 app.Use(async (ctx, next) =>
 {
     var holder = ctx.RequestServices.GetRequiredService<DashboardScopeHolder>();
     var readModel = ctx.RequestServices.GetRequiredService<IDashboardReadModel>();
-    holder.Scope = DashboardScopeResolver.ScopeFor(ctx.Request.Headers, readModel);
+    holder.Scope = DashboardScopeResolver.ScopeFor(ctx.User, readModel);
     await next();
 });
 
