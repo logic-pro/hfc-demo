@@ -24,9 +24,12 @@ jobs:
         with: { node-version: '20' }
 
       # Real browser + the OS libs the local sandbox lacks (libnspr4, libnss3, …).
+      # playwright must be a LOCAL dep — the drivers `import { chromium } from
+      # "playwright"`, and ESM resolves node_modules upward from e2e/, not globals.
       - name: Install Playwright + Chromium (with deps)
         run: |
-          npm i -g playwright@latest
+          npm init -y >/dev/null 2>&1 || true
+          npm i --no-save playwright@latest
           npx --yes playwright install --with-deps chromium
 
       - name: Build + start API (background)
