@@ -179,6 +179,17 @@ Avoid mega-branches that mix:
 
 Split them unless the repo structure proves a combined PR is safer.
 
+### 8. Output prompts as one-click copy blocks
+
+The deliverable is prompts the user pastes into other windows — optimize for that, ALWAYS:
+
+* Render EACH worktree's prompt as its own fenced code block using a **four-backtick** fence (` ```` `), so any inner triple-backtick ```bash``` blocks survive intact and the editor shows a one-click **copy** button.
+* Put a one-line label directly above each block naming the target window — e.g. `Paste into the` `alpha` `window:`.
+* Plain text, **fully self-contained** — inline the repo context in every block; never "see above" / "(as above)".
+* Also persist each prompt to `docs/<coord>/prompts/<n>-<worktree>.md` plus an index `README.md`, so worktrees can `git pull` them too.
+* Produce one block per worktree that actually exists (e.g. every entry under a `*-worktrees/` dir), including already-merged ones (mark those "stand down").
+* **Order the blocks to match the worktree directory order** — alphabetical, i.e. the same order `open-worktrees.sh` opens the windows — so the user can paste top-to-bottom and each block lines up with the next window. Do NOT order by merge sequence; put the merge order in the merge-order section instead.
+
 ---
 
 ## Initial Repo Audit Process
@@ -446,9 +457,9 @@ Use this table:
 
 ## Copy-Paste Prompt Format for Each Worktree Lead
 
-Every prompt must be self-contained.
+Every prompt must be self-contained AND rendered as a one-click copy block (see Principle 8): wrap each in a **four-backtick** fence with a `Paste into the <worktree> window:` label directly above it, plain text, repo context inlined so the lead needs zero follow-up questions.
 
-Use this format:
+Use this structure inside each block:
 
 ~~~md
 # Worktree Lead Prompt: [Agent Name]
@@ -797,12 +808,15 @@ When the user asks for PM delegation, return:
 [API/schema/type/env contracts]
 
 ## 7. Copy-Paste Prompts
-### Agent A Prompt
-[Full prompt]
-### Agent B Prompt
-[Full prompt]
-### Agent C Prompt
-[Full prompt]
+One labeled four-backtick copy block per worktree (copy-button ready), each fully self-contained — render directly in the chat:
+
+Paste into the `agent-a` window:
+[four-backtick code block: full plain-text prompt]
+
+Paste into the `agent-b` window:
+[four-backtick code block: full plain-text prompt]
+
+(…one block per worktree, including merged ones marked "stand down"…)
 
 ## 8. Integration Checklist
 [Checklist]

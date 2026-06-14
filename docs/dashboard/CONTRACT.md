@@ -6,9 +6,15 @@
 > this contract, not to each other.** Any change here is a cross-stream event:
 > edit this file, bump the version, and ping the other leads before diverging.
 
-**Contract version:** `v1.1` · **Target:** Demo v1 ("demo now, real platform later")
+**Contract version:** `v1.2` · **Target:** Demo v1 ("demo now, real platform later")
 · **Source of truth for rationale:** the tech spec + ROADMAP §0 + the three
 `franchise-*` / `corporate-rollup-*` skills.
+
+**Changelog (all additive — no shape breaks):**
+- `v1.1` (bravo, §2) — add `GET /api/dashboard/map`.
+- `v1.2` (alpha, §1) — add `franchisee_slug` column to `territory_period_summary`
+  (operational slug denormalized beside the numeric `franchisee_id`) so Bravo's
+  RBAC franchisee lens can match Slice A's token claim (a slug) to read-model rows.
 
 ---
 
@@ -45,6 +51,7 @@ territory_id            (INTEGER)   FK
 brand_id                (INTEGER)   denormalized for fast filter
 region_id               (INTEGER)   denormalized
 franchisee_id           (INTEGER)
+franchisee_slug         (TEXT)      operational slug (v1.2) — Bravo maps token-claim slug -> numeric franchisee_id for the RBAC franchisee lens
 period_id               (INTEGER)   YYYYMM
 period_start            (TEXT/DATE)
 period_end              (TEXT/DATE)

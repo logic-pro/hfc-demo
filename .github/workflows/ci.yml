@@ -1,0 +1,83 @@
+name: CI
+
+# Green-gate: a PR cannot merge red. Builds the API, the Durable Functions
+# project, runs the test suite, AOT-builds the Angular SPA, and smoke-tests the
+# running API's tenancy / concurrency / idempotency guarantees. Any non-zero
+# step fails the job.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: build · test · web · smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --- .NET: API + Functions + tests ---
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.x'
+
+      - name: Build API
+        run: dotnet build api/api.csproj -c Release --nologo
+
+      - name: Build Functions
+        run: dotnet build functions/functions.csproj -c Release --nologo
+
+      - name: Test
+        run: dotnet test tests/HfcDemo.Tests.csproj -c Release --nologo
+
+      # --- Web: Angular AOT production build ---
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install & build SPA (AOT)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      # --- Smoke: boot the API and assert its guarantees end-to-end ---
+      # ASPNETCORE_ENVIRONMENT=Development is required: the /api/dev/token mint
+      # the smoke script logs in through is gated to Development (it never ships
+      # to prod). A clean runner has no hfc-demo.db, so EnsureCreated() builds the
+      # full schema fresh — the rm -f is belt-and-suspenders against any cache.
+      - name: Smoke-test API
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          rm -f api/hfc-demo.db
+          dotnet run --project api/api.csproj -c Release --no-launch-profile \
+            --urls http://localhost:5180 &
+          API_PID=$!
+          # Wait up to ~60s for the API to come up (untenanted /api/brands).
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5180/api/brands >/dev/null 2>&1; then
+              echo "API is up after ${i}s"
+              break
+            fi
+            if ! kill -0 "$API_PID" 2>/dev/null; then
+              echo "API process exited before becoming ready"; exit 1
+            fi
+            sleep 1
+          done
+          set +e
+          API_BASE=http://localhost:5180 ./e2e/smoke-api.sh
+          rc=$?
+          set -e
+          kill "$API_PID" 2>/dev/null || true
+          exit $rc

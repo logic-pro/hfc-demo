@@ -21,9 +21,10 @@ echo "Smoke-testing $B"
 n=$(curl -s "$B/api/brands" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$n" "8" "brand catalog returns 8 brands"
 
-# 16 franchisees in the catalog (untenanted) — two per brand
+# at least the 16 operational franchisees (two per brand); dashboard lanes seed more.
+# Assert a floor, not an exact count — the catalog grows as lanes add seed data.
 fn=$(curl -s "$B/api/franchisees" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
-chk "$fn" "16" "franchisee catalog returns 16 franchisees"
+chk "$([ "$fn" -ge 16 ] && echo ok || echo "$fn")" "ok" "franchisee catalog returns >=16 franchisees (got $fn)"
 
 # auth gating: no token -> 401 (fail-closed at the edge)
 chk "$(code "$B/api/slots")" "401" "slots without a token -> 401"
@@ -93,5 +94,16 @@ chk "$ftc" "0" "territories: franchisee lens fail-closed (own only)"
 chk "$(code -H "Authorization: Bearer $FT" "$B/api/dashboard/corporate")" "403" "corporate roll-up: franchisee -> 403"
 # franchisee cannot read a territory outside its scope -> 403 (cross-tenant)
 chk "$(code -H "Authorization: Bearer $FT" "$B/api/territories/1/health-score")" "403" "health-score: cross-tenant -> 403"
+# NPS: record a post-service response for budget-blinds-irvine's appointment -> 201
+chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
+
+# the measured feed carries the clean score, territory-resolved (no join needed)
+score=$(curl -s -H "Authorization: Bearer $BB" "$B/api/nps" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(s['score'] for s in d if s['appointmentId']==$AID))")
+chk "$score" "9" "NPS feed returns the recorded score"
+
+# cross-franchisee isolation also covers NPS: a same-brand sibling franchisee
+# (budget-blinds-tustin) cannot read budget-blinds-irvine's NPS responses
+nseen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/nps" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
+chk "$nseen" "0" "other franchisee sees 0 of budget-blinds-irvine's NPS responses"
 
 echo "All $pass checks passed."
