@@ -32,25 +32,32 @@ jobs:
           npm i --no-save playwright@latest
           npx --yes playwright install --with-deps chromium
 
-      - name: Build + start API (background)
+      # Build the SPA and copy it into the API's wwwroot so the API serves the
+      # app SAME-ORIGIN on :5180 (the API already has UseDefaultFiles/UseStaticFiles
+      # + MapFallbackToFile("index.html")). Cross-origin :4200->:5180 was timing
+      # the drivers out; same-origin removes that failure mode entirely.
+      - name: Build web -> copy into api/wwwroot
+        run: |
+          (cd web && npm ci && npm run build)
+          rm -rf api/wwwroot
+          mkdir -p api/wwwroot
+          cp -r web/dist/web/browser/. api/wwwroot/
+          echo "wwwroot contents:"; ls -la api/wwwroot
+
+      - name: Build + start API (serves SPA + API on :5180, background)
         working-directory: api
         run: |
           dotnet build -c Release
           (dotnet run -c Release --no-build --urls http://localhost:5180 &)
+          # API ready
           for i in $(seq 1 40); do curl -sf http://localhost:5180/health && break || sleep 1; done
-
-      - name: Build + serve web (background)
-        working-directory: web
-        run: |
-          npm ci
-          npm run build
-          (npx --yes http-server dist/web/browser -p 4200 -s &)
-          for i in $(seq 1 30); do curl -sf http://localhost:4200 >/dev/null && break || sleep 1; done
+          # SPA index served same-origin
+          for i in $(seq 1 30); do curl -sf http://localhost:5180/ >/dev/null && break || sleep 1; done
 
       - name: Run all e2e drivers -> /tmp/hfc-shots
         env:
-          HFC_WEB_BASE: http://localhost:4200
-          HFC_API_BASE: http://localhost:5180
+          WEB_URL: http://localhost:5180
+          API_BASE: http://localhost:5180
         run: |
           mkdir -p /tmp/hfc-shots
           for d in e2e/drive-*.mjs; do
