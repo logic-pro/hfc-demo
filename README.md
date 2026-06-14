@@ -24,7 +24,9 @@ It's deliberately deep on three things an interviewer will probe, rather than wi
    [functions/BookingWorkflow.cs](functions/BookingWorkflow.cs)
 
 ```
-Angular 20 SPA ──HTTP (X-Tenant-Id)──▶ ASP.NET Core 9 API ──EF Core──▶ SQLite / Azure SQL
+Angular 20 SPA ──HTTP (Authorization: Bearer JWT)──▶ ASP.NET Core 9 API ──EF Core──▶ SQLite / Azure SQL
+                  the API resolves the tenant from the verified token claim (api/Auth.cs),
+                  never a spoofable header — this is the production-grade isolation pattern.
                                             │ starts orchestration
                                             ▼
                                    Durable Functions (confirm/reminder/await/finalize)
