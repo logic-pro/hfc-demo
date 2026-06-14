@@ -23,3 +23,9 @@ functions/local.settings.json
 # Misc
 .DS_Store
 *.log
+
+# PM control-plane transient traffic (registry/board/decisions/status stay tracked)
+.pm/inbox/*
+.pm/outbox/*
+.pm/archive/*
+!.pm/**/.gitkeep

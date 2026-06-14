@@ -3,7 +3,7 @@
 You are the lead implementation agent for this worktree. Work only here.
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 (standalone components, signals) + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/dashboard/WORKTREE-GITFLOW.md`). The corporate dashboard is built to the frozen `docs/dashboard/CONTRACT.md` §2. `main` also carries a now-retired `web/src/app/corporate/` slice (your dashboard supersedes it) plus Slice A's `tenant.interceptor.ts` changes.
+HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 (standalone components, signals) + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/worktrees/WORKTREE-GITFLOW.md`). The corporate dashboard is built to the frozen `docs/dashboard/CONTRACT.md` §2. `main` also carries a now-retired `web/src/app/corporate/` slice (your dashboard supersedes it) plus Slice A's `tenant.interceptor.ts` changes.
 
 ## Your worktree
 - Path: `hfc-demo-worktrees/charlie`

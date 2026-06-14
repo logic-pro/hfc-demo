@@ -1,0 +1,42 @@
+{
+  "_comment": "Lanes are REUSABLE NATO slots (alpha..echo): the worktree is a persistent execution slot; the task/role/allowed_paths/skills are reassigned per round via the .pm bus. PM-owned (single writer). 'name' (friendly) is decoupled from 'branch' so we never have to rename a branch mid-round.",
+  "namingConvention": "Slots: alpha, bravo, charlie, delta, echo (+ special-purpose like wt-modularize). A slot takes a fresh feat/<area> or chore/<area> branch per assignment. NEVER rename a branch with an open PR or mid-round. Physical `git worktree move` only when that slot's VS Code window is CLOSED.",
+  "renameDone": [
+    "delta  ← slice-a-auth-tenancy dir renamed to hfc-demo-worktrees/delta; now on a clean slot/delta @ origin/main; FREE slot.",
+    "echo   ← slice-d-franchisee-dashboard dir renamed to hfc-demo-worktrees/echo; branch + in-flight franchisee work preserved. Repurpose to new work only after its PR merges."
+  ],
+  "slots": [
+    { "name": "alpha",   "dir": "hfc-demo-worktrees/alpha",   "branch": "alpha",
+      "status": "merged", "task": "Corporate read-model + rollup (DONE — PR #3)", "free": false,
+      "allowed_paths": ["api/ReadModel.cs","api/Rollup.cs","api/Domain.cs","api/AppDb.cs","api/Seed.cs"],
+      "skills": ["worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "bravo",   "dir": "hfc-demo-worktrees/bravo",   "branch": "bravo",
+      "status": "active", "task": "Dashboard API + RBAC + EF swap (merge #3)", "free": false,
+      "allowed_paths": ["api/Dashboard/**"],
+      "skills": ["worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "charlie", "dir": "hfc-demo-worktrees/charlie", "branch": "charlie",
+      "status": "active", "task": "Franchisor executive dashboard UI (merge #4)", "free": false,
+      "allowed_paths": ["web/src/app/dashboard/**","web/src/app/app-shell.ts","web/src/app/app.routes.ts","web/src/index.html","web/src/main.ts","web/src/styles.css","web/src/app/tenant.interceptor.ts"],
+      "skills": ["frontend-bi-dashboard-architect","dashboard-crossfilter-scope","dashboard-trust-provenance-polish","worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "delta",   "dir": "hfc-demo-worktrees/delta", "branch": "slot/delta",
+      "status": "free", "task": "AWAITING ASSIGNMENT (clean slot @ origin/main)", "free": true,
+      "allowed_paths": [],
+      "skills": ["worktree-continuation","worktree-summary-reporter"],
+      "_note": "FREE slot — assign next backlog item via .pm/outbox/delta/; set allowed_paths + skills per task. For a real feature, branch feat/<area> off slot/delta." },
+
+    { "name": "echo",    "dir": "hfc-demo-worktrees/echo", "branch": "slice-d-franchisee-dashboard",
+      "status": "active", "task": "Franchisee operations dashboard UI (merge #5, holding for charlie)", "free": false,
+      "allowed_paths": ["web/src/app/franchisee/**","api/DashboardReadModel.cs"],
+      "skills": ["frontend-bi-dashboard-architect","worktree-summary-reporter","worktree-continuation"],
+      "_note": "Rename dir → hfc-demo-worktrees/echo only AFTER this PR merges. DIR-COLLISION to resolve in decisions.md: exec-ui owns web/src/app/dashboard/, franchisee moves to web/src/app/franchisee/." },
+
+    { "name": "wt-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "chore/modularize-endpoints",
+      "status": "holding-until-round1-done", "task": "Hub-file modularization (round-2 enabler)", "free": false,
+      "allowed_paths": ["api/Endpoints/**","api/Data/Config/**","api/Seed/**","api/Program.cs","api/AppDb.cs","api/Seed.cs"],
+      "skills": ["worktree-summary-reporter","worktree-continuation"] }
+  ],
+  "retired": ["slice-b-ai-intake (PR #1 → main)","slice-c-nps-pipeline (PR #2 → main)"]
+}

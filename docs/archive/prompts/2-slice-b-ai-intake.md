@@ -6,7 +6,7 @@ You are the lead for this worktree. Work only here.
 Slice B is done and merged: `api/Intake.cs` (Claude tool-calling extraction + deterministic heuristic fallback + spend/latency guardrails), `POST /api/intake/parse` (tenant-scoped, stateless), the "Draft with AI" frontend, and `e2e/drive-intake.mjs`. **You do not need to build anything.**
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/dashboard/WORKTREE-GITFLOW.md`).
+HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/worktrees/WORKTREE-GITFLOW.md`).
 
 ## What to do in this window
 1. Confirm it's on `main`:

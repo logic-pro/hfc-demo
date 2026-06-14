@@ -3,7 +3,7 @@
 You are the lead implementation agent for this worktree. Work only here.
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/dashboard/WORKTREE-GITFLOW.md`). Slice A established two-axis tenancy on `main` (`franchiseeId` boundary, `brandId` grouping) via `TenantResolver.Populate` in `api/Auth.cs`. The corporate dashboard read model is built to the frozen `docs/dashboard/CONTRACT.md` §1.
+HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/worktrees/WORKTREE-GITFLOW.md`). Slice A established two-axis tenancy on `main` (`franchiseeId` boundary, `brandId` grouping) via `TenantResolver.Populate` in `api/Auth.cs`. The corporate dashboard read model is built to the frozen `docs/dashboard/CONTRACT.md` §1.
 
 ## Your worktree
 - Path: `hfc-demo-worktrees/alpha`

@@ -3,7 +3,7 @@
 You are the lead implementation agent for this worktree. Work only here.
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/dashboard/WORKTREE-GITFLOW.md`). Slice A established token-claim two-axis tenancy on `main` (`TenantResolver.Populate` in `api/Auth.cs`; `franchiseeId` boundary, `brandId` grouping). alpha's read model (`territory_period_summary`, CONTRACT §1) lands before/with you. The dashboard API is built to the frozen `docs/dashboard/CONTRACT.md` §2.
+HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/worktrees/WORKTREE-GITFLOW.md`). Slice A established token-claim two-axis tenancy on `main` (`TenantResolver.Populate` in `api/Auth.cs`; `franchiseeId` boundary, `brandId` grouping). alpha's read model (`territory_period_summary`, CONTRACT §1) lands before/with you. The dashboard API is built to the frozen `docs/dashboard/CONTRACT.md` §2.
 
 ## Your worktree
 - Path: `hfc-demo-worktrees/bravo`

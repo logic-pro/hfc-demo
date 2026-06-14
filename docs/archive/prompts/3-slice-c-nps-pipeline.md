@@ -3,7 +3,7 @@
 You are the lead implementation agent for this worktree. Work only here.
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 (standalone components, signals) + Azure Durable Functions. Multi-tenant franchise scheduling for 8 brands across territories. `main` is the always-deployable trunk; we run GitHub Flow with rapid integration: rebase often, merge when green, re-sync after every merge (see `docs/dashboard/WORKTREE-GITFLOW.md`). Slice A established tenancy — tenant + role come from a verified token claim via `TenantResolver.Populate` in `api/Auth.cs`; two-axis (`franchiseeId` = isolation boundary, `brandId` = grouping); EF global query filter, fail-closed.
+HFC franchise platform demo — ASP.NET Core 9 minimal API + EF Core (SQLite local / Azure SQL) + Angular 20 (standalone components, signals) + Azure Durable Functions. Multi-tenant franchise scheduling for 8 brands across territories. `main` is the always-deployable trunk; we run GitHub Flow with rapid integration: rebase often, merge when green, re-sync after every merge (see `docs/worktrees/WORKTREE-GITFLOW.md`). Slice A established tenancy — tenant + role come from a verified token claim via `TenantResolver.Populate` in `api/Auth.cs`; two-axis (`franchiseeId` = isolation boundary, `brandId` = grouping); EF global query filter, fail-closed.
 
 ## Your worktree
 - Path: `hfc-demo-worktrees/slice-c-nps-pipeline`

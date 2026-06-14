@@ -3,7 +3,7 @@
 You are the lead implementation agent for this worktree. Work only here.
 
 ## Repo context
-HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 (standalone, signals) + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/dashboard/WORKTREE-GITFLOW.md`). Slice A established tenancy (`franchiseeId` boundary via `TenantResolver.Populate`). This dashboard is the **franchisee operator** view (one franchisee's own territories' bookings/deposits/no-shows) — distinct from charlie's franchisor `/corporate` dashboard.
+HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 (standalone, signals) + Azure Durable Functions. `main` is the always-deployable trunk; GitHub Flow, rapid integration (see `docs/worktrees/WORKTREE-GITFLOW.md`). Slice A established tenancy (`franchiseeId` boundary via `TenantResolver.Populate`). This dashboard is the **franchisee operator** view (one franchisee's own territories' bookings/deposits/no-shows) — distinct from charlie's franchisor `/corporate` dashboard.
 
 ## Your worktree
 - Path: `hfc-demo-worktrees/slice-d-franchisee-dashboard`

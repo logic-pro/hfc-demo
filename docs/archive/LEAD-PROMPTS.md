@@ -60,7 +60,7 @@ You are the lead implementation agent for this worktree.
 HFC franchise platform demo — ASP.NET Core 9 + EF Core + Angular 20 + Azure Durable Functions.
 `main` is the always-deployable trunk (GitHub Flow). Slice A established token-claim two-axis
 tenancy (franchiseeId boundary, brandId grouping) via `TenantResolver.Populate`. Read
-docs/dashboard/WORKTREE-GITFLOW.md and docs/decisions.md (ADR-04, ADR-08, ADR-16) first.
+docs/worktrees/WORKTREE-GITFLOW.md and docs/decisions.md (ADR-04, ADR-08, ADR-16) first.
 
 ## Your Worktree
 - Path: `hfc-demo-worktrees/slice-c-nps-pipeline` · Branch: `slice-c-nps-pipeline` · Base/Target: `main`
