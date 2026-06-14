@@ -1,0 +1,92 @@
+:host { display: block; }
+
+.wl-card { padding: 18px 20px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Header + summary ─────────────────────────────────────────────────────── */
+.wl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.wl-title { display: flex; flex-direction: column; gap: 6px; }
+.wl-title h2 { font-size: 18px; }
+.wl-sum { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sum-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+}
+.sum-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sum-badge[data-sev='high'] { color: var(--health-critical); background: rgba(255,84,112,.1); }
+.sum-badge[data-sev='medium'] { color: var(--health-warning); background: rgba(255,159,69,.1); }
+.sum-terr { font-size: 11.5px; color: var(--ink-3); }
+
+/* ── Severity filter ──────────────────────────────────────────────────────── */
+.wl-filter { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.02); border: 1px solid var(--surface-line); align-self: flex-start; }
+.wf-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 999px;
+  font-family: inherit; font-size: 11.5px; font-weight: 600; letter-spacing: .02em;
+  color: var(--ink-3); background: transparent; border: none; cursor: pointer;
+  transition: color var(--t-fast) ease, background var(--t-fast) ease;
+}
+.wf-btn:hover { color: var(--ink-1); }
+.wf-btn .wf-n { font-size: 11px; opacity: .7; }
+.wf-btn[data-sev='high'] { --c: var(--health-critical); }
+.wf-btn[data-sev='medium'] { --c: var(--health-warning); }
+.wf-btn.on { background: var(--bg-1); color: var(--ink-0); box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+.wf-btn.on[data-sev] { color: var(--c); }
+.wf-btn:focus-visible { outline: 2px solid var(--c, var(--accent)); outline-offset: 1px; }
+
+/* ── Queue ────────────────────────────────────────────────────────────────── */
+.wl-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; max-height: 520px; overflow-y: auto; }
+.wl-row {
+  position: relative; display: grid; grid-template-columns: 3px 1fr auto 16px;
+  align-items: center; gap: 14px; padding: 12px 14px 12px 0;
+  border-radius: var(--r-md); border: 1px solid var(--surface-line);
+  background: rgba(255,255,255,.012); cursor: pointer; outline: none; overflow: hidden;
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.wl-row:hover, .wl-row:focus-visible { background: var(--bg-3); transform: translateX(2px); }
+.wl-row[data-sev='high']:hover, .wl-row[data-sev='high']:focus-visible { border-color: rgba(255,84,112,.4); }
+.wl-row[data-sev='medium']:hover, .wl-row[data-sev='medium']:focus-visible { border-color: rgba(255,159,69,.36); }
+
+/* Severity rail — the urgency cue */
+.wl-rail { align-self: stretch; border-radius: 3px; }
+.wl-row[data-sev='high'] .wl-rail { background: var(--health-critical); box-shadow: 0 0 12px -2px var(--health-critical); }
+.wl-row[data-sev='medium'] .wl-rail { background: var(--health-warning); box-shadow: 0 0 12px -2px var(--health-warning); }
+.wl-row[data-sev='low'] .wl-rail { background: var(--ink-4); }
+
+.wl-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-left: 14px; }
+.wl-l1 { display: flex; align-items: center; gap: 9px; }
+.wl-flag { font-size: 13.5px; font-weight: 600; color: var(--ink-0); }
+.wl-cat {
+  font-size: 9.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-3); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--surface-line);
+}
+.wl-l2 { display: flex; align-items: center; gap: 7px; font-size: 12px; flex-wrap: wrap; }
+.wl-terr { color: var(--ink-1); font-weight: 500; }
+.wl-dot { color: var(--ink-4); }
+.wl-brand { color: var(--ink-2); }
+.wl-region { font-size: 10.5px; color: var(--ink-3); padding-left: 4px; }
+.wl-why { margin: 2px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--ink-3); max-width: 64ch; }
+
+.wl-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.wl-metric { display: inline-flex; align-items: baseline; gap: 6px; }
+.wl-metric .m-cur { font-family: var(--font-display); font-weight: 600; font-size: 17px; color: var(--ink-0); letter-spacing: -0.01em; }
+.wl-row[data-sev='high'] .wl-metric .m-cur { color: var(--health-critical); }
+.wl-row[data-sev='medium'] .wl-metric .m-cur { color: var(--health-warning); }
+.wl-metric .m-vs { font-size: 11px; color: var(--ink-3); }
+.wl-metric.none { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--prov-seeded); }
+.wl-time { font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+
+.wl-go { color: var(--ink-3); font-size: 14px; opacity: 0; transition: opacity var(--t-fast) ease; }
+.wl-row:hover .wl-go, .wl-row:focus-visible .wl-go { opacity: 1; }
+
+.wl-empty { font-size: 12.5px; color: var(--ink-3); margin: 8px 2px; }
+
+/* Skeleton */
+.wl-row.sk { cursor: default; grid-template-columns: 3px 1fr; gap: 14px; }
+.wl-row.sk .wl-main { gap: 8px; padding: 2px 0 2px 14px; }
+.sk-line { height: 11px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-3), var(--bg-2), var(--bg-3)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+.sk-line.w50 { width: 50%; } .sk-line.w30 { width: 30%; }
+
+@media (prefers-reduced-motion: reduce) { .wl-row { transition: none; } }
+@media (max-width: 680px) {
+  .wl-row { grid-template-columns: 3px 1fr 16px; }
+  .wl-right { grid-column: 2; flex-direction: row; align-items: center; gap: 10px; }
+}

@@ -1,0 +1,86 @@
+:host { display: block; }
+
+.bt-card { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 14px; height: 100%; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.bt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.bt-title { display: flex; flex-direction: column; gap: 6px; }
+.bt-title h2 { font-size: 18px; }
+.bt-hint { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.bt-scroll { overflow-x: auto; }
+.bt { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+.bt thead th {
+  text-align: right; padding: 6px 10px 10px; font-size: 10.5px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+  border-bottom: 1px solid var(--surface-line); white-space: nowrap;
+}
+.bt thead th.c-rank, .bt thead th.c-brand, .bt thead th.c-issue { text-align: left; }
+.bt thead th.sortable { cursor: pointer; user-select: none; transition: color var(--t-fast) ease; }
+.bt thead th.sortable:hover { color: var(--ink-1); }
+.bt thead th.sortable.on { color: var(--accent); }
+
+.bt-row {
+  cursor: pointer; outline: none;
+  transition: background var(--t-fast) ease, box-shadow var(--t-fast) ease;
+}
+.bt-row td { padding: 11px 10px; border-bottom: 1px solid var(--surface-line); text-align: right; vertical-align: middle; }
+.bt-row:last-child td { border-bottom: none; }
+.bt-row:hover { background: rgba(255,255,255,.022); }
+.bt-row:focus-visible { background: rgba(255,255,255,.03); }
+.bt-row.sel { background: var(--accent-glow); }
+.bt-row.sel td { box-shadow: inset 0 0 0 9999px rgba(95,227,192,.04); }
+.bt-row.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 9999px rgba(95,227,192,.04); }
+
+/* Rank */
+.c-rank { text-align: left; width: 30px; }
+.rank { font-family: var(--font-display); font-weight: 600; font-size: 14px; color: var(--ink-2); }
+.bt-row:nth-child(1) .rank { color: var(--ink-0); }
+
+/* Brand */
+.c-brand { text-align: left; }
+.bt-row td.c-brand { display: flex; align-items: center; gap: 10px; }
+.b-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--bg-2) 70%, transparent); }
+.b-id { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.b-name { font-weight: 600; color: var(--ink-0); font-size: 13.5px; white-space: nowrap; }
+.b-arch { font-size: 10.5px; color: var(--ink-3); letter-spacing: .02em; }
+
+.c-num { width: 56px; }
+.c-num.tnum, td.c-num { color: var(--ink-1); }
+
+/* Metric cell: number + thin health bar */
+.c-metric { width: 92px; }
+.m-cell { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.m-val { font-family: var(--font-display); font-weight: 600; font-size: 15px; line-height: 1; color: var(--ink-0); letter-spacing: -0.01em; }
+.m-track { width: 100%; height: 4px; border-radius: 999px; background: var(--bg-3); overflow: hidden; }
+.m-fill { display: block; height: 100%; border-radius: 999px; transition: width 600ms var(--ease); }
+
+/* Financial — honest pending */
+.c-fin { width: 78px; }
+.fin-pending {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .04em;
+  color: var(--ink-3); border: 1px dashed var(--ink-4);
+  background: repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,.025) 4px, rgba(255,255,255,.025) 8px);
+}
+
+/* Flags badge */
+.flags {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px;
+  font-weight: 600; font-size: 12.5px;
+}
+.flags[data-load='none'] { color: var(--ink-3); background: rgba(255,255,255,.03); }
+.flags[data-load='some'] { color: var(--health-warning); background: rgba(255,159,69,.12); }
+.flags[data-load='heavy'] { color: var(--health-critical); background: rgba(255,84,112,.14); }
+
+/* Top issue */
+.c-issue { text-align: left; }
+.issue { font-size: 12px; color: var(--ink-2); }
+.issue.ok { color: var(--health-good); }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.bt-foot { padding-top: 2px; }
+.foot-note { font-size: 11px; color: var(--ink-3); line-height: 1.45; }

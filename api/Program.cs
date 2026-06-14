@@ -1,4 +1,5 @@
 using HfcDemo;
+using HfcDemo.Dashboard;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +10,21 @@ var conn = builder.Configuration.GetConnectionString("Default")
            ?? "Data Source=hfc-demo.db";
 builder.Services.AddScoped<TenantContext>();
 builder.Services.AddDbContext<AppDb>(o => o.UseSqlite(conn));
+
+// AuthN/AuthZ: tenant comes from a VERIFIED token claim, never a header.
+// Prod = Entra ID / Azure AD B2C (Auth:Authority); local/test = symmetric dev
+// key — same validation rigor. See Auth.cs (the single tenancy seam).
+builder.Services.AddHfcAuth(builder.Configuration);
+
+// AI-assisted structured intake (free text -> typed, human-verifiable draft).
+builder.Services.AddSingleton<IntakeService>();
+
+// Dashboard read model (corporate roll-up plane). In-memory STUB shaped like
+// CONTRACT §1 today; swap for an EF-backed IDashboardReadModel over Alpha's
+// `territory_period_summary` when D2/D3 land — same interface, no shape change.
+// Singleton: the data is baked once at boot (the RecomputeRollup stand-in).
+builder.Services.AddSingleton<IDashboardReadModel, StubDashboardReadModel>();
+builder.Services.AddScoped<DashboardScopeHolder>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -31,66 +47,107 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDb>();
     Seed.Run(db);
+    // Build the corporate read model from the seeded operational/reported planes.
+    // One on-demand/boot rebuild (CONTRACT clock decision); idempotent full rebuild.
+    Rollup.Recompute(db);
 }
 
-// ── Tenant middleware: resolve X-Tenant-Id into the scoped TenantContext ─────
-// Mirrors how a real multi-tenant API resolves the tenant (header / subdomain /
-// token claim) before any handler runs.
+app.UseAuthentication();
+app.UseAuthorization();
+
+// ── Tenancy seam: resolve the VERIFIED principal into the scoped TenantContext.
+// Runs after authentication so ctx.User is already validated. This is the one
+// place the identity becomes the tenant — fail-closed (no claim → no tenant →
+// no rows via the EF global query filter). Header-based tenancy is gone.
 app.Use(async (ctx, next) =>
 {
     var tenant = ctx.RequestServices.GetRequiredService<TenantContext>();
-    if (ctx.Request.Headers.TryGetValue("X-Tenant-Id", out var t))
-        tenant.BrandId = t.ToString();
+    TenantResolver.Populate(tenant, ctx.User);
     await next();
 });
 
-static IResult NeedTenant() =>
-    Results.Problem(statusCode: 400, title: "Missing X-Tenant-Id header (pick a brand first).");
+// ── Dashboard RBAC scope (D10): resolve role → allowed territory ids ─────────
+// Resolved per request and filtered BEFORE any read-model query. Sourced from the
+// VERIFIED token claim on ctx.User (Slice A's seam) — never a client header; runs
+// after UseAuthentication so the principal is validated. Default lens is
+// `corporate` (all); a `franchisee_id` claim fail-closes the caller to its own
+// territories. (Rewired header → claim per INTEGRATION.md #1.)
+app.Use(async (ctx, next) =>
+{
+    var holder = ctx.RequestServices.GetRequiredService<DashboardScopeHolder>();
+    var readModel = ctx.RequestServices.GetRequiredService<IDashboardReadModel>();
+    holder.Scope = DashboardScopeResolver.ScopeFor(ctx.User, readModel);
+    await next();
+});
 
 // ── Endpoints ────────────────────────────────────────────────────────────────
 
-// Brand catalog — not tenant-filtered; this is how a client picks its tenant.
+// Brand catalog — not tenant-filtered; a grouping over franchisees.
 app.MapGet("/api/brands", async (AppDb db) =>
     Results.Ok(await db.Brands.OrderBy(b => b.Name)
-        .Select(b => new BrandDto(b.Id, b.Name, b.Tagline)).ToListAsync()));
+        .Select(b => new BrandDto(b.Id, b.Name, b.Tagline)).ToListAsync()))
+    .AllowAnonymous();
 
-// Open slots for the current tenant.
-app.MapGet("/api/slots", async (AppDb db, TenantContext t) =>
+// Franchisee catalog — untenanted. In production the franchisees a user may act
+// as come from their identity; here this list backs the demo's login picker.
+app.MapGet("/api/franchisees", async (AppDb db) =>
+    Results.Ok(await db.Franchisees
+        .Join(db.Brands, f => f.BrandId, br => br.Id, (f, br) => new { f, br })
+        .OrderBy(x => x.br.Name).ThenBy(x => x.f.Region)
+        .Select(x => new FranchiseeDto(x.f.Id, x.f.BrandId, x.br.Name, x.f.Name, x.f.Region))
+        .ToListAsync()))
+    .AllowAnonymous();
+
+// Dev-only: exchange a franchisee selection for a signed token (stands in for a
+// B2C / Entra login). Gated to Development so it never ships a token mint to prod.
+if (app.Environment.IsDevelopment())
 {
-    if (t.BrandId is null) return NeedTenant();
+    app.MapPost("/api/dev/token", async (DevTokenRequest req, AppDb db) =>
+    {
+        var f = await db.Franchisees.FirstOrDefaultAsync(x => x.Id == req.FranchiseeId);
+        if (f is null) return Results.NotFound("Unknown franchisee.");
+        var token = DevTokens.Mint(f.Id, f.BrandId,
+            signingKey: builder.Configuration["Auth:DevSigningKey"]);
+        return Results.Ok(new DevTokenResponse(token, f.Id, f.BrandId));
+    }).AllowAnonymous();
+}
+
+// Open slots for the current tenant (resolved franchisee).
+app.MapGet("/api/slots", async (AppDb db) =>
+{
     var slots = await db.Slots
         .Join(db.Territories, s => s.TerritoryId, te => te.Id, (s, te) => new { s, te })
         .OrderBy(x => x.s.StartUtc)
         .Select(x => new SlotDto(x.s.Id, x.te.Id, x.te.Name, x.s.StartUtc, x.s.IsBooked))
         .ToListAsync();
     return Results.Ok(slots);
-});
+}).RequireAuthorization();
 
 // Appointments for the current tenant.
-app.MapGet("/api/appointments", async (AppDb db, TenantContext t) =>
+app.MapGet("/api/appointments", async (AppDb db) =>
 {
-    if (t.BrandId is null) return NeedTenant();
     var appts = await db.Appointments.OrderBy(a => a.StartUtc)
         .Select(a => new AppointmentDto(a.Id, a.TerritoryId, a.StartUtc, a.CustomerName,
             a.Service, a.DepositCents, a.DepositKey != null))
         .ToListAsync();
     return Results.Ok(appts);
-});
+}).RequireAuthorization();
 
 // Book a slot. Optimistic concurrency on Slot.Version means two racing
-// bookings can't both win — the loser gets 409.
+// bookings can't both win — the loser gets 409. The slot is read through the
+// tenant filter, so a franchisee can only book its own slots.
 app.MapPost("/api/appointments", async (BookRequest req, AppDb db, TenantContext t) =>
 {
-    if (t.BrandId is null) return NeedTenant();
     var slot = await db.Slots.FirstOrDefaultAsync(s => s.Id == req.SlotId);
-    if (slot is null) return Results.NotFound();
+    if (slot is null) return Results.NotFound();   // not found OR not this tenant's
     if (slot.IsBooked) return Results.Conflict("Slot already booked.");
 
     slot.IsBooked = true;
     slot.Version++;                       // bump the concurrency token
     var appt = new Appointment
     {
-        BrandId = t.BrandId!,
+        FranchiseeId = slot.FranchiseeId,
+        BrandId = slot.BrandId,
         TerritoryId = slot.TerritoryId,
         SlotId = slot.Id,
         StartUtc = slot.StartUtc,
@@ -113,19 +170,18 @@ app.MapPost("/api/appointments", async (BookRequest req, AppDb db, TenantContext
     return Results.Created($"/api/appointments/{appt.Id}",
         new AppointmentDto(appt.Id, appt.TerritoryId, appt.StartUtc, appt.CustomerName,
             appt.Service, appt.DepositCents, false));
-});
+}).RequireAuthorization();
 
 // Pay a deposit. Idempotent: a retry with the same Idempotency-Key never
 // double-charges — it returns the already-applied result.
 app.MapPost("/api/appointments/{id:int}/deposit",
-    async (int id, DepositRequest req, HttpRequest http, AppDb db, TenantContext t) =>
+    async (int id, DepositRequest req, HttpRequest http, AppDb db) =>
 {
-    if (t.BrandId is null) return NeedTenant();
     if (!http.Headers.TryGetValue("Idempotency-Key", out var key) || string.IsNullOrWhiteSpace(key))
         return Results.Problem(statusCode: 400, title: "Missing Idempotency-Key header.");
 
     var appt = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
-    if (appt is null) return Results.NotFound();
+    if (appt is null) return Results.NotFound();   // not found OR not this tenant's
 
     if (appt.DepositKey is not null)       // already paid
     {
@@ -139,7 +195,78 @@ app.MapPost("/api/appointments/{id:int}/deposit",
     await db.SaveChangesAsync();
     return Results.Ok(new AppointmentDto(appt.Id, appt.TerritoryId, appt.StartUtc,
         appt.CustomerName, appt.Service, appt.DepositCents, true));
-});
+}).RequireAuthorization();
+
+// AI-assisted structured intake: turn the customer's free-text request into a
+// TYPED draft the agent can review and edit before booking. Tenant-scoped so the
+// extractor maps onto the current brand's service vocabulary. Spend/latency are
+// capped inside the service, and any failure degrades to a local heuristic — so
+// this endpoint always returns a usable draft (never 5xx on a model hiccup).
+app.MapPost("/api/intake/parse", async (IntakeRequest req, IntakeService intake, TenantContext t, CancellationToken ct) =>
+{
+    var draft = await intake.ParseAsync(req.Text, t.BrandId, ct);
+    return Results.Ok(draft);
+}).RequireAuthorization();
+
+// ── Dashboard endpoints (D6–D9): read-only projections over the read model ──
+app.MapDashboard();
+// Record a post-service NPS response (the Durable NpsWorkflow's review-gen runs
+// off the same score). This is the row the dashboards read — so it's the source
+// of truth that flips NPS from seeded to measured. One survey per appointment;
+// a second response for the same appointment is rejected as a conflict.
+app.MapPost("/api/appointments/{id:int}/nps",
+    async (int id, NpsRequest req, AppDb db) =>
+{
+    if (req.Score is < 0 or > 10)
+        return Results.Problem(statusCode: 400, title: "NPS score must be 0–10.");
+
+    // Read the appointment through the tenant filter: a survey can only be
+    // recorded against the current franchisee's own appointment (else 404,
+    // never cross-tenant). FranchiseeId/BrandId/TerritoryId are copied from it,
+    // not from client input, so the survey inherits the appointment's isolation
+    // boundary and dashboard grain exactly.
+    var appt = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+    if (appt is null) return Results.NotFound();
+
+    if (await db.NpsSurveys.AnyAsync(s => s.AppointmentId == id))
+        return Results.Conflict("NPS already recorded for this appointment.");
+
+    var survey = new NpsSurvey
+    {
+        FranchiseeId = appt.FranchiseeId,   // isolation key — inherited from the appointment
+        BrandId = appt.BrandId,             // grouping (denormalized)
+        TerritoryId = appt.TerritoryId,     // denormalize for territory-level aggregation
+        AppointmentId = appt.Id,
+        Score = req.Score,
+        Comment = req.Comment ?? "",
+        RespondedAt = DateTime.UtcNow,
+    };
+    db.NpsSurveys.Add(survey);
+    try
+    {
+        await db.SaveChangesAsync();
+    }
+    catch (DbUpdateException)              // unique-index race: two responses at once
+    {
+        return Results.Conflict("NPS already recorded for this appointment.");
+    }
+    return Results.Created($"/api/appointments/{appt.Id}/nps",
+        new NpsSurveyDto(survey.Id, survey.AppointmentId, survey.TerritoryId,
+            survey.Score, survey.Comment, survey.RespondedAt));
+}).RequireAuthorization();
+
+// All NPS responses for the current tenant — the dashboards' measured-NPS feed.
+// Tenant-filtered (by FranchiseeId), territory-resolvable without a join: the
+// dashboard groups this by the denormalized TerritoryId to flip its NPS tile
+// from seeded to measured.
+app.MapGet("/api/nps", async (AppDb db) =>
+{
+    var surveys = await db.NpsSurveys.OrderBy(s => s.RespondedAt)
+        .Select(s => new NpsSurveyDto(s.Id, s.AppointmentId, s.TerritoryId,
+            s.Score, s.Comment, s.RespondedAt))
+        .ToListAsync();
+    return Results.Ok(surveys);
+}).RequireAuthorization();
 
 // ── Franchisee Operations dashboard read-model (Slice D) ─────────────────────
 // Pre-shaped read model; the SPA only formats/filters/drills. Tenant-scoped by
@@ -166,4 +293,4 @@ app.MapFallbackToFile("index.html");
 
 app.Run();
 
-public partial class Program { }          // for potential WebApplicationFactory tests
+public partial class Program { }          // for WebApplicationFactory integration tests

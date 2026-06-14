@@ -1,0 +1,83 @@
+:host { display: block; }
+
+.dist-card { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 16px; height: 100%; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.dist-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dist-title { display: flex; flex-direction: column; gap: 6px; }
+.dist-title h2 { font-size: 18px; }
+.dist-scope .pill { font-size: 11px; }
+
+/* ── Stat strip ─────────────────────────────────────────────────────────── */
+.dist-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+}
+.stat {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 9px 12px; border-radius: var(--r-md);
+  background: rgba(255,255,255,.018); border: 1px solid var(--surface-line);
+}
+.stat-num { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1; color: var(--ink-0); letter-spacing: -0.02em; }
+.stat-num.alarm { color: var(--health-critical); }
+.stat-cap { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+
+/* ── Chart ──────────────────────────────────────────────────────────────── */
+.dist-stage { width: 100%; }
+.dist-svg { width: 100%; aspect-ratio: 600 / 300; display: block; overflow: visible; }
+
+.grid line { stroke: var(--surface-line); stroke-width: .5; opacity: .55; }
+.grid .tick { fill: var(--ink-3); font-size: 10px; text-anchor: end; }
+.axis { stroke: var(--surface-line); stroke-width: 1; }
+
+.bar-g { cursor: pointer; outline: none; }
+.bar-hit { fill: transparent; }
+.bar-g:focus-visible .bar-hit { fill: rgba(255,255,255,.03); }
+
+.bar-rect {
+  transition:
+    y 640ms var(--ease),
+    height 640ms var(--ease),
+    opacity 220ms ease,
+    filter 220ms ease;
+}
+.bar-g.muted .bar-rect { opacity: .42; }
+.bar-g.active .bar-rect { filter: drop-shadow(0 0 8px color-mix(in srgb, currentColor 40%, transparent)); }
+.bar-g:hover .bar-rect { opacity: 1; filter: brightness(1.12); }
+
+.bar-count { fill: var(--ink-1); font-size: 13px; font-weight: 600; text-anchor: middle; opacity: 0; transition: opacity 320ms ease; }
+.bar-count.shown { opacity: 1; }
+.bar-g.muted .bar-count { fill: var(--ink-3); }
+
+.bar-label { fill: var(--ink-2); font-size: 11px; font-weight: 600; text-anchor: middle; letter-spacing: .02em; }
+.bar-range { fill: var(--ink-3); font-size: 9.5px; text-anchor: middle; }
+.bar-g.active .bar-label { fill: var(--ink-0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-rect, .bar-count { transition: none; }
+}
+
+/* ── Drill list ─────────────────────────────────────────────────────────── */
+.dist-drill { display: flex; flex-direction: column; gap: 8px; }
+.drill-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.drill-band { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; font-size: 13px; }
+.drill-swatch { width: 9px; height: 9px; border-radius: 2px; }
+.drill-hint { font-size: 11px; color: var(--ink-3); }
+
+.drill-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 196px; overflow-y: auto; }
+.drill-row {
+  display: grid; grid-template-columns: 36px 1fr auto 16px; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid transparent; cursor: pointer;
+  transition: background var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
+}
+.drill-row:hover, .drill-row:focus-visible {
+  background: var(--bg-3); border-color: var(--surface-line); transform: translateX(2px); outline: none;
+}
+.dr-score { font-family: var(--font-display); font-weight: 600; font-size: 16px; text-align: right; letter-spacing: -0.01em; }
+.dr-name { font-size: 13px; color: var(--ink-1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dr-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-2); white-space: nowrap; }
+.dr-swatch { width: 8px; height: 8px; border-radius: 2px; background: var(--chip, var(--accent)); }
+.dr-go { color: var(--ink-3); font-size: 13px; opacity: 0; transition: opacity var(--t-fast) ease; }
+.drill-row:hover .dr-go, .drill-row:focus-visible .dr-go { opacity: 1; }
+
+.drill-empty { font-size: 12.5px; color: var(--ink-3); margin: 4px 2px; }

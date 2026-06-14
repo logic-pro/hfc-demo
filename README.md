@@ -1,5 +1,7 @@
 # HFC Scheduling — multi-tenant demo
 
+[![CI](https://github.com/logic-pro/hfc-demo/actions/workflows/ci.yml/badge.svg)](https://github.com/logic-pro/hfc-demo/actions/workflows/ci.yml)
+
 A portfolio demo built on the **Home Franchise Concepts** role stack
 (ASP.NET Core / Azure / Angular). One platform serves 8 franchise brands; each
 brand (tenant) sees only its own territories, slots, and appointments.

@@ -1,0 +1,86 @@
+using System.Security.Claims;
+
+namespace HfcDemo.Dashboard;
+
+// ── D10 — RBAC scope filter (applied BEFORE the read-model query) ────────────
+// Two lenses for v1 (CONTRACT §0): `corporate` sees all territories; `franchisee`
+// sees only its own. The scope resolves to a concrete allow-set, and handlers
+// filter to it FIRST — a franchisee can never receive another territory's row.
+//
+// Scope source is Slice A's tenancy seam (api/Auth.cs): role + franchisee id come
+// from the VERIFIED token claim on ctx.User, never a client header. (The previous
+// X-Dashboard-Role / X-Franchisee-Id headers were the pre-Slice-A demo stand-in;
+// rewired per INTEGRATION.md #1 "rebase scope onto A's token claim".) The FILTER
+// is unchanged — only the *source* moved header → claim. Structured so adding the
+// 5 Track-2 roles is a claim read (extend ScopeFor), not a rewrite of call sites.
+public sealed class DashboardScope
+{
+    public string ScopeLevel { get; init; } = "corporate";
+    // Operational franchisee slug from the claim (matches Slice A's TenantContext);
+    // null for the corporate lens. Informational — the boundary is AllowedTerritoryIds.
+    public string? FranchiseeId { get; init; }
+
+    // null => unrestricted (corporate). Non-null => the only territories this
+    // caller may see. Empty set => fail-closed (sees nothing).
+    public IReadOnlySet<int>? AllowedTerritoryIds { get; init; }
+
+    public bool IsCorporate => ScopeLevel == "corporate";
+    public bool Allows(int territoryId) =>
+        AllowedTerritoryIds is null || AllowedTerritoryIds.Contains(territoryId);
+
+    // CONTRACT §2 corporate `scope.territoryIds`: [] for corporate (= all).
+    public int[] TerritoryIdsForEcho =>
+        AllowedTerritoryIds?.OrderBy(x => x).ToArray() ?? Array.Empty<int>();
+}
+
+// Scoped per-request holder, set by middleware (mirrors TenantContext).
+public sealed class DashboardScopeHolder
+{
+    public DashboardScope Scope { get; set; } = new();
+}
+
+public static class DashboardScopeResolver
+{
+    // RBAC scope derives from the VERIFIED token claim (Slice A's seam in
+    // api/Auth.cs), never a client header: the `franchisee_id` claim is the
+    // isolation key, and its presence selects the franchisee lens. A franchisee
+    // therefore cannot widen its own view by sending a header — the lens is
+    // pinned to the signed token.
+    public static DashboardScope ScopeFor(ClaimsPrincipal? user, IDashboardReadModel readModel)
+    {
+        var franchiseeId = user?.FindFirst(HfcClaims.FranchiseeId)?.Value;
+
+        if (!string.IsNullOrWhiteSpace(franchiseeId))
+        {
+            // Franchisee lens: scope to exactly this franchisee's territories,
+            // resolved from the read-model dimension. An id that matches no
+            // territory yields an EMPTY allow-set => fail-closed (no rows), never all.
+            //
+            // POST-MERGE (INTEGRATION.md #1): the read model keys franchisee by
+            // INTEGER (CONTRACT §1); Slice A's claim is the operational franchisee
+            // SLUG. Reconciling them is Alpha's "rebase franchiseeId onto A's model"
+            // task (alpha merges before bravo). Until then a real franchisee token
+            // fail-closes to 0 territories here — safe by design; the corporate lens
+            // (the demo default) and the 403 / unknown-id boundary are unaffected.
+            var allowed = readModel.Territories
+                .Where(t => string.Equals(t.FranchiseeId?.ToString(), franchiseeId,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(t => t.TerritoryId)
+                .ToHashSet();
+
+            return new DashboardScope
+            {
+                ScopeLevel = "franchisee",
+                FranchiseeId = franchiseeId,
+                AllowedTerritoryIds = allowed,
+            };
+        }
+
+        // No franchisee_id claim => corporate lens (all). In the demo this also
+        // covers anonymous access (the corporate dashboard is the zero-config
+        // default; the endpoints are not auth-gated). In prod a franchisor
+        // principal carries a corporate app-role and no franchisee_id — still
+        // claim-gated, never the old spoofable header.
+        return new DashboardScope { ScopeLevel = "corporate", AllowedTerritoryIds = null };
+    }
+}

@@ -1,0 +1,109 @@
+<div class="dash">
+  <!-- ── Title row ────────────────────────────────────────────────────────── -->
+  <section class="dash-head">
+    <div class="dash-title">
+      <span class="eyebrow">Franchisor Network · Portfolio View</span>
+      <h1>Network Operations Command Center</h1>
+      <!-- ── Drill scope breadcrumb (D17) ───────────────────────────────────── -->
+      <nav class="drill-scope" aria-label="Drill scope">
+        <button class="ds-crumb" [class.on]="selectedBrandId() === null" (click)="selectBrand(null)">
+          Portfolio
+        </button>
+        @if (selectedBrand(); as b) {
+          <span class="ds-sep" aria-hidden="true">›</span>
+          <span class="ds-crumb on">
+            <span class="ds-swatch" [style.background]="brandAccent(b.brandId)"></span>{{ b.brandName }}
+            <span class="ds-count tnum">{{ b.territoryCount }} terr.</span>
+          </span>
+          <button class="ds-clear" (click)="selectBrand(null)" aria-label="Clear brand scope">clear ✕</button>
+        }
+      </nav>
+    </div>
+    <div class="dash-period">
+      <span class="data-src" [class.live]="liveMode"
+        [title]="liveMode ? 'Live data from Bravo endpoints' : 'CONTRACT §2 fixtures (demo mode)'">
+        <span class="src-dot"></span>{{ liveMode ? 'Live · Bravo' : 'Demo data' }}
+      </span>
+      @if (period(); as p) {
+        <span class="pill">{{ p.label }} · LTM {{ p.trailingWindowMonths }}mo</span>
+      }
+    </div>
+  </section>
+
+  @if (error()) {
+    <div class="banner error">{{ error() }}</div>
+  }
+
+  <!-- ── Hero-8 vital signs (D11) ─────────────────────────────────────────── -->
+  <section class="hero" aria-label="Network vital signs">
+    @if (loading()) {
+      @for (s of skeletons; track $index) {
+        <div class="tile card skeleton" aria-hidden="true">
+          <div class="sk-line w40"></div>
+          <div class="sk-value"></div>
+          <div class="sk-line w60"></div>
+        </div>
+      }
+    } @else {
+      @for (v of vitalSigns(); track v.metricKey; let i = $index) {
+        <ec-kpi-tile [data]="v" [delayMs]="i * 60" [activePlane]="provenanceFilter()" />
+      }
+    }
+  </section>
+
+  <!-- ── Provenance / data-quality visual (D16) ───────────────────────────── -->
+  @if (!loading()) {
+    <ec-provenance
+      [vitalSigns]="vitalSigns()"
+      [notes]="dataNotes()"
+      [selected]="provenanceFilter()"
+      (planeChange)="setProvenancePlane($event)"
+    />
+  }
+
+  <!-- ── Territory health map (D12) ───────────────────────────────────────── -->
+  @if (mapLoading()) {
+    <div class="card map-skeleton">
+      <div class="sk-line w40"></div>
+      <div class="sk-map"></div>
+    </div>
+  } @else {
+    <ec-territory-map
+      [territories]="territories()"
+      [brandId]="selectedBrandId()"
+      (brandChange)="selectBrand($event)"
+      (select)="selectTerritory($event)"
+    />
+  }
+
+  <!-- ── Distribution + brand comparison (D13) ────────────────────────────── -->
+  @if (!loading()) {
+    <section class="dist-grid" aria-label="Performance distribution and brand comparison">
+      <ec-distribution
+        [territories]="territories()"
+        [brandId]="selectedBrandId()"
+        (select)="selectTerritory($event)"
+      />
+      <ec-brand-table
+        [brands]="brandComparison()"
+        [selectedBrandId]="selectedBrandId()"
+        (selectBrand)="selectBrand($event)"
+      />
+    </section>
+  }
+
+  <!-- ── Watchlist action queue (D15) ─────────────────────────────────────── -->
+  <ec-watchlist
+    [flags]="watchlist()"
+    [loading]="watchlistLoading()"
+    (select)="selectTerritoryId($event)"
+  />
+</div>
+
+<!-- ── Territory scorecard drawer (D14) ──────────────────────────────────────── -->
+<ec-scorecard
+  [data]="scoreData()"
+  [loading]="scoreLoading()"
+  [open]="scorecardOpen()"
+  (close)="closeScorecard()"
+/>
