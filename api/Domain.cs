@@ -173,18 +173,32 @@ public class NpsSurvey                    // tenant-scoped (by FranchiseeId), li
 }
 
 // ── DTOs (never expose entities directly; keeps the contract stable) ────────
-public record BrandDto(string Id, string Name, string Tagline);
+// Num: the numeric dashboard brand id (Brand.Num). Additive — the login picker
+// mints a brand-scope token from it; existing callers ignore the extra field.
+public record BrandDto(string Id, string Name, string Tagline, int Num);
 public record FranchiseeDto(string Id, string BrandId, string BrandName, string Name, string Region);
+// Region reference for the region-manager login persona: the numeric region id the
+// token mint takes, plus a display name. Mirrors the web RegionRef { id, name }.
+public record RegionDto(int Id, string Name);
 public record SlotDto(int Id, int TerritoryId, string TerritoryName, DateTime StartUtc, bool IsBooked);
 public record BookRequest(int SlotId, string CustomerName, string Service);
 public record AppointmentDto(int Id, int TerritoryId, DateTime StartUtc, string CustomerName, string Service, int DepositCents, bool DepositPaid);
 public record DepositRequest(int AmountCents);
-// Dev-only: exchange a franchisee selection OR a corporate role for a signed token
-// (stands in for a B2C / Entra login during the demo). Gated to the Development
-// environment. Backward compatible: existing callers send {"franchiseeId":"…"};
-// the corporate executive login sends {"role":"corporate"} (no tenant).
-public record DevTokenRequest(string? FranchiseeId = null, string? Role = null);
-public record DevTokenResponse(string Token, string? FranchiseeId, string? BrandId);
+// Dev-only: exchange a login selection for a signed token (stands in for a B2C /
+// Entra login during the demo). Gated to the Development environment. Covers the
+// whole 4-tier hierarchy, backward compatible (every field optional):
+//   {"franchiseeId":"…"}                 → operator (tenant-scoped)
+//   {"role":"corporate"} | {"scope":"network"} → network read-down (all)
+//   {"scope":"brand","brandId":N}        → brand read-down
+//   {"scope":"region","regionId":N}      → region read-down
+// `Scope` is what the web login picker sends for brand/region; `Role` is the
+// network alias. Both accepted so the API tolerates either wording.
+public record DevTokenRequest(
+    string? FranchiseeId = null, string? Role = null, string? Scope = null,
+    int? BrandId = null, int? RegionId = null);
+// Scope echoes the tier the token carries (network|brand|region|franchisee) so the
+// web can label the session; the corporate tiers omit the operator tenant ids.
+public record DevTokenResponse(string Token, string? FranchiseeId, string? BrandId, string? Scope = null);
 // NPS pipeline: post-service survey response and its dashboard-facing read shape.
 public record NpsRequest(int Score, string? Comment);
 public record NpsSurveyDto(int Id, int AppointmentId, int TerritoryId, int Score, string Comment, DateTime RespondedAt);

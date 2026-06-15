@@ -21,9 +21,12 @@ public interface IDashboardReadModel
     // D7 — pre-computed score + drivers for a territory/period (null if absent).
     TerritoryScore? Score(int territoryId, int periodId);
 
-    // D6 — pre-rolled corporate vital signs + brand comparison (NOT recomputed
-    // at request time). brandId/regionId narrow the brand-comparison rows only.
-    CorporateRollup Corporate(int periodId, int trailingWindow, int? brandId, int? regionId);
+    // D6 — pre-rolled vital signs + brand comparison (NOT recomputed at request
+    // time). The roll-up is PRE-BAKED PER SCOPE (network / brand / region) at boot,
+    // so a brand/region read-down principal gets honestly scoped vital signs — never
+    // the network totals (that would be the RBAC leak this hierarchy prevents). For
+    // the network scope, brandId/regionId still narrow the brand-comparison rows.
+    CorporateRollup Corporate(DashboardScope scope, int periodId, int trailingWindow, int? brandId, int? regionId);
 
     // D8 — pre-computed watchlist flag rows.
     IReadOnlyList<WatchlistFlag> Watchlist { get; }

@@ -18,6 +18,12 @@ tok() { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
 # dashboard read-down now that the corporate endpoints are auth-gated.
 corptok() { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
           -d '{"role":"corporate"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])"; }
+# Mint BRAND / REGION read-down tokens (the middle RBAC tiers) — the scope-based
+# wording the web login picker sends: {"scope":"brand","brandId":N} / region.
+brandtok()  { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
+          -d "{\"scope\":\"brand\",\"brandId\":$1}"  | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])"; }
+regiontok() { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
+          -d "{\"scope\":\"region\",\"regionId\":$1}" | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])"; }
 
 echo "Smoke-testing $B"
 
@@ -128,6 +134,39 @@ chk "$(code -H "Authorization: Bearer $OP" "$B/api/territories/1/health-score")"
 chk "$(code -H "Authorization: Bearer $OP" "$B/api/territories/2/health-score")" "403" "health-score: non-own territory -> 403"
 # and still cannot open the corporate roll-up -> 403
 chk "$(code -H "Authorization: Bearer $OP" "$B/api/dashboard/corporate")" "403" "corporate roll-up: dashboard franchisee -> 403"
+
+# ── 4-tier RBAC: the middle read-down tiers (brand / region) ──────────────────
+# A brand token scopes to ONE brand's territories; a region token to ONE region's.
+# Each is a strict subset of the network — a brand/region can never see the whole
+# portfolio (the leak the hierarchy prevents). Note: brand and region counts are
+# NOT comparable (a region spans several brands), so we assert each ⊂ network, not
+# a linear network>=brand>=region chain.
+NET=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | jget "['totalCount']")
+BNUM=$(curl -s "$B/api/brands" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(b['num'] for b in d if b['name']=='Budget Blinds'))")
+RID=$(curl -s "$B/api/regions" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'])")
+BTOK=$(brandtok "$BNUM")
+RTOK=$(regiontok "$RID")
+BRD=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/territories" | jget "['totalCount']")
+REG=$(curl -s -H "Authorization: Bearer $RTOK" "$B/api/territories" | jget "['totalCount']")
+chk "$([ "$NET" -gt "$BRD" ] && [ "$BRD" -gt 0 ] && echo ok || echo "net=$NET brd=$BRD")" "ok" "brand scope ⊂ network: brand($BRD) < network($NET), >0"
+chk "$([ "$NET" -gt "$REG" ] && [ "$REG" -gt 0 ] && echo ok || echo "net=$NET reg=$REG")" "ok" "region scope ⊂ network: region($REG) < network($NET), >0"
+
+# every territory a brand token sees is its own brand (no cross-brand bleed)
+allbb=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/territories" | python3 -c "import sys,json;d=json.load(sys.stdin);print(all(t['brandId']==$BNUM for t in d['items']))")
+chk "$allbb" "True" "brand token sees only its own brand's territories"
+# a brand token cannot read a territory in ANOTHER brand -> 403 (cross-brand isolation)
+OTHER=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(t['territoryId'] for t in d['items'] if t['brandId']!=$BNUM))")
+chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/territories/$OTHER/health-score")" "403" "brand token cannot read another brand's territory -> 403"
+# but CAN read one of its own -> 200
+OWN=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/territories" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['items'][0]['territoryId'])")
+chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/territories/$OWN/health-score")" "200" "brand token reads its own territory -> 200"
+
+# the corporate roll-up is SCOPED for a brand token (honest scoped vital signs, not
+# the network totals): scopeLevel=brand and active_territories == the brand's count.
+bsl=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/dashboard/corporate" | jget "['scope']['scopeLevel']")
+chk "$bsl" "brand" "brand corporate roll-up: scopeLevel == brand"
+bvs=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/dashboard/corporate" | python3 -c "import sys,json;d=json.load(sys.stdin);print(int(next(v['value'] for v in d['vitalSigns'] if v['metricKey']=='active_territories')))")
+chk "$bvs" "$BRD" "brand roll-up vital signs are scoped (active_territories=$BRD, not network=$NET)"
 # NPS: record a post-service response for budget-blinds-irvine's appointment -> 201
 chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
 

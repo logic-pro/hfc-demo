@@ -12,10 +12,18 @@ public static class CatalogEndpoints
 {
     public static void MapCatalog(this WebApplication app)
     {
-        // Brand catalog — not tenant-filtered; a grouping over franchisees.
+        // Brand catalog — not tenant-filtered; a grouping over franchisees. Carries
+        // the numeric Num so the login picker can mint a brand-scope token.
         app.MapGet("/api/brands", async (AppDb db) =>
             Results.Ok(await db.Brands.OrderBy(b => b.Name)
-                .Select(b => new BrandDto(b.Id, b.Name, b.Tagline)).ToListAsync()))
+                .Select(b => new BrandDto(b.Id, b.Name, b.Tagline, b.Num)).ToListAsync()))
+            .AllowAnonymous();
+
+        // Region catalog — untenanted reference backing the region-manager login
+        // persona (its numeric id mints a region-scope token). Dashboard-set regions.
+        app.MapGet("/api/regions", async (AppDb db) =>
+            Results.Ok(await db.Regions.OrderBy(r => r.Name)
+                .Select(r => new RegionDto(r.Id, r.Name)).ToListAsync()))
             .AllowAnonymous();
 
         // Franchisee catalog — untenanted. In production the franchisees a user may act
@@ -34,25 +42,44 @@ public static class CatalogEndpoints
         {
             app.MapPost("/api/dev/token", async (DevTokenRequest req, AppDb db) =>
             {
-                // Corporate (franchisor) login: role-based, no tenant. Mints the
-                // role=corporate token the executive dashboard attaches; admitted by
-                // the "Corporate" policy. Shared auth contract with the web side.
-                if (string.Equals(req.Role, HfcClaims.CorporateRole, StringComparison.OrdinalIgnoreCase))
+                var key = app.Configuration["Auth:DevSigningKey"];
+                // Normalize the read-down tier from either wording: `scope`
+                // (network|brand|region) as the web login picker sends, or `role`
+                // (the corporate/network alias). Each mints a scoped read-down token.
+                var tier = (req.Scope ?? req.Role)?.ToLowerInvariant();
+                switch (tier)
                 {
-                    var corp = DevTokens.MintCorporate(signingKey: app.Configuration["Auth:DevSigningKey"]);
-                    return Results.Ok(new DevTokenResponse(corp, null, null));
+                    case "network":
+                    case HfcClaims.CorporateRole:                       // "corporate"
+                        return Results.Ok(new DevTokenResponse(
+                            DevTokens.MintCorporate(signingKey: key), null, null, "network"));
+
+                    case HfcClaims.BrandRole:                           // "brand"
+                        if (req.BrandId is not int bid)
+                            return Results.BadRequest("brand scope requires a numeric brandId.");
+                        if (!await db.Brands.AnyAsync(b => b.Num == bid))
+                            return Results.NotFound("Unknown brand.");
+                        return Results.Ok(new DevTokenResponse(
+                            DevTokens.MintBrand(bid, signingKey: key), null, null, "brand"));
+
+                    case HfcClaims.RegionRole:                          // "region"
+                        if (req.RegionId is not int rid)
+                            return Results.BadRequest("region scope requires a numeric regionId.");
+                        if (!await db.Regions.AnyAsync(r => r.Id == rid))
+                            return Results.NotFound("Unknown region.");
+                        return Results.Ok(new DevTokenResponse(
+                            DevTokens.MintRegion(rid, signingKey: key), null, null, "region"));
                 }
 
                 // Franchisee (operator) login: unchanged — exchange a franchisee
                 // selection for a tenant-scoped token.
                 if (string.IsNullOrWhiteSpace(req.FranchiseeId))
-                    return Results.BadRequest("Provide either role=corporate or a franchiseeId.");
+                    return Results.BadRequest("Provide a scope (network|brand|region) or a franchiseeId.");
 
                 var f = await db.Franchisees.FirstOrDefaultAsync(x => x.Id == req.FranchiseeId);
                 if (f is null) return Results.NotFound("Unknown franchisee.");
-                var token = DevTokens.Mint(f.Id, f.BrandId,
-                    signingKey: app.Configuration["Auth:DevSigningKey"]);
-                return Results.Ok(new DevTokenResponse(token, f.Id, f.BrandId));
+                var token = DevTokens.Mint(f.Id, f.BrandId, signingKey: key);
+                return Results.Ok(new DevTokenResponse(token, f.Id, f.BrandId, "franchisee"));
             }).AllowAnonymous();
         }
     }
