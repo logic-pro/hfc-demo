@@ -32,7 +32,53 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
     p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
 
+// Uniform RFC 7807 error contract (QA #3/#8/#23). Backs UseExceptionHandler +
+// UseStatusCodePages below so EVERY failure — unhandled exceptions, 400 bind
+// failures, 401s — is returned as application/problem+json and never a .NET
+// stack trace. Deliberately env-independent: this app runs in Development for
+// the dev-login, so we must not leak the developer exception page there either.
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
+
+// ── Error contract (QA #3/#8/#23): no stack traces, ever ─────────────────────
+// Registered FIRST so it wraps the whole pipeline. UseExceptionHandler turns any
+// unhandled exception into application/problem+json (via AddProblemDetails);
+// UseStatusCodePages gives bodyless error responses (401/404/415/…) a matching
+// problem+json body. Unconditional by design — the developer exception page is
+// never used, including in Development where the dev-login runs.
+// StatusCodeSelector honors the status a bad-request carries instead of forcing
+// 500: in Development a malformed/JSON-bind failure throws BadHttpRequestException
+// (StatusCode 400), so this surfaces it as a clean 400 problem+json, not a 500.
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    StatusCodeSelector = ex => ex is BadHttpRequestException bad
+        ? bad.StatusCode
+        : StatusCodes.Status500InternalServerError,
+});
+app.UseStatusCodePages();
+
+// ── Security headers (QA #15) ────────────────────────────────────────────────
+// Set before next() so they land on every response, including errors and static
+// SPA assets. Indexer assignment overwrites rather than appends (no duplicates).
+// CSP is intentionally minimal-but-compatible: 'unsafe-inline'/'unsafe-eval' are
+// required by both the Angular runtime and the Swagger UI, so a stricter policy
+// would break those surfaces — this still confines every fetch origin to 'self'.
+app.Use(async (ctx, next) =>
+{
+    var h = ctx.Response.Headers;
+    h["X-Content-Type-Options"] = "nosniff";
+    h["X-Frame-Options"] = "DENY";
+    h["Referrer-Policy"] = "no-referrer";
+    h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    h["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; font-src 'self' data:; connect-src 'self'";
+    await next();
+});
+
 app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -94,6 +140,19 @@ app.MapIntake();               // /api/intake/parse
 app.MapDashboard();            // D6–D9 corporate roll-up projections
 app.MapNps();                  // /api/appointments/{id}/nps, /api/nps
 app.MapFranchiseeDashboard();  // /api/dashboard, /api/dashboard/territories
+
+// ── Health (QA #24) ──────────────────────────────────────────────────────────
+// A REAL liveness/readiness probe at both the existing /health and the
+// conventional /healthz. Mapped before the SPA fallback so these paths return a
+// genuine signal instead of index.html — previously /health only answered 200
+// because MapFallbackToFile served the SPA for any unknown path (a false-green
+// the deploy gate relied on). Pings the DB so a broken data plane fails the gate.
+var health = (AppDb db) =>
+    db.Database.CanConnect()
+        ? Results.Ok(new { status = "healthy" })
+        : Results.Json(new { status = "unhealthy" }, statusCode: StatusCodes.Status503ServiceUnavailable);
+app.MapGet("/health", health).AllowAnonymous().ExcludeFromDescription();
+app.MapGet("/healthz", health).AllowAnonymous().ExcludeFromDescription();
 
 // SPA fallback: any non-API, non-file route serves index.html so Angular's
 // client-side router can take over. Excludes /api and /swagger.
