@@ -8,9 +8,9 @@ import { ApiService } from '../api.service';
 import { DashboardApiService } from './dashboard-api.service';
 import {
   ActionRowDto, ActionStageFilter, DashboardFilters, DashboardResponse,
-  DashboardState, KpiCardVm, KpiDto, PeriodType, initialState,
+  DashboardState, KpiCardVm, KpiDto, KpiKey, PeriodType, initialState,
 } from './dashboard.models';
-import { deltaStatus, formatDeltaPercent, formatKpiValue } from './utils/number-format.util';
+import { deltaDirection, deltaStatus, formatDeltaPercent, formatKpiValue } from './utils/number-format.util';
 
 import { FilterBarComponent } from './components/filter-bar.component';
 import { KpiGridComponent } from './components/kpi-grid.component';
@@ -155,6 +155,12 @@ interface DashboardVm {
         (close)="closeDrawer()" />
     </div>
   `,
+  // The global stylesheet sets a near-white heading colour (--ink-0) for the dark
+  // executive dashboard via an unlayered \`h1,h2,h3,h4\` rule, which outranks Tailwind's
+  // layered \`.text-slate-*\` utilities and ghosts this light-canvas heading. Re-assert
+  // the colour with component-scoped (emulated-encapsulation) specificity. Out-of-lane
+  // styles.css owns the offending rule — this is the in-lane, scoped correction.
+  styles: [`h1 { color: #020617; }`], // slate-950
 })
 export class DashboardPageComponent {
   private api = inject(DashboardApiService);
@@ -209,18 +215,33 @@ export class DashboardPageComponent {
     (this.data()?.response.kpis ?? []).map((k) => this.toKpiVm(k)),
   );
 
+  /** Deposit metrics that are legitimately zero this period are an honest empty
+   *  state, not a red alarm. We only neutralise the DEPOSIT tiles (where a true
+   *  zero means "no deposit activity yet"), and only when the value is exactly 0
+   *  — never when data is merely missing/unavailable (handled by dataQuality). */
+  private static readonly DEPOSIT_KEYS = new Set<KpiKey>(['deposit_conversion', 'deposit_volume']);
+
   private toKpiVm(k: KpiDto): KpiCardVm {
+    const isEmpty =
+      DashboardPageComponent.DEPOSIT_KEYS.has(k.key) &&
+      k.dataQuality === 'measured' &&
+      k.value === 0;
+
     return {
       key: k.key,
       label: k.label,
       formattedValue: formatKpiValue(k.value, k.unit),
       deltaLabel: formatDeltaPercent(k.deltaPercent),
-      deltaStatus: deltaStatus(k.deltaPercent, k.higherIsBetter),
-      status: k.status,
+      deltaDirection: deltaDirection(k.deltaPercent),
+      // An honest zero gets neutral colour — not the red the API may have stamped.
+      deltaStatus: isEmpty ? 'neutral' : deltaStatus(k.deltaPercent, k.higherIsBetter),
+      status: isEmpty ? 'neutral' : k.status,
       trend: k.trend,
       dataQuality: k.dataQuality,
       tooltip: k.tooltip,
       drillTo: k.drillTo,
+      isEmpty,
+      emptyLabel: isEmpty ? 'No deposits this period' : null,
     };
   }
 

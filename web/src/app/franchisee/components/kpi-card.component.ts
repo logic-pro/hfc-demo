@@ -24,14 +24,19 @@ import { ActionStageFilter, KpiCardVm, MetricStatus } from '../dashboard.models'
         <app-data-quality-badge [quality]="kpi().dataQuality" />
       </div>
 
-      <p class="mt-2 pl-2 text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
-        {{ kpi().formattedValue }}
+      <p
+        class="mt-2 pl-2 text-3xl font-semibold tracking-tight tabular-nums"
+        [class]="kpi().isEmpty ? 'text-slate-400' : 'text-slate-900'"
+      >
+        {{ kpi().isEmpty ? '—' : kpi().formattedValue }}
       </p>
 
       <div class="mt-2 flex items-center gap-2 pl-2 text-sm">
-        @if (kpi().deltaLabel) {
+        @if (kpi().isEmpty) {
+          <span class="text-slate-500">{{ kpi().emptyLabel }}</span>
+        } @else if (kpi().deltaLabel) {
           <span class="rounded-full px-2 py-0.5 font-medium" [class]="deltaClass()">
-            {{ statusGlyph() }} {{ kpi().deltaLabel }}
+            <span aria-hidden="true">{{ directionGlyph() }}</span> {{ kpi().deltaLabel }}
           </span>
           <span class="text-slate-500">vs last period</span>
         } @else {
@@ -39,10 +44,15 @@ import { ActionStageFilter, KpiCardVm, MetricStatus } from '../dashboard.models'
         }
       </div>
 
-      <!-- inline sparkline (zero-dependency) -->
-      <svg class="mt-3 ml-2 h-8 w-full text-slate-300" [attr.viewBox]="'0 0 100 32'" preserveAspectRatio="none" aria-hidden="true">
-        <polyline [attr.points]="sparkPoints()" fill="none" stroke="currentColor" stroke-width="1.5" />
-      </svg>
+      <!-- inline sparkline (zero-dependency). Suppressed for empty tiles so a flat
+           zero line never reads as a measured trend. -->
+      @if (!kpi().isEmpty && sparkPoints()) {
+        <svg class="mt-3 ml-2 h-8 w-full text-slate-400" [attr.viewBox]="'0 0 100 32'" preserveAspectRatio="none" aria-hidden="true">
+          <polyline [attr.points]="sparkPoints()" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      } @else {
+        <div class="mt-3 h-8" aria-hidden="true"></div>
+      }
     </button>
   `,
 })
@@ -68,10 +78,13 @@ export class KpiCardComponent {
     }
   });
 
-  readonly statusGlyph = computed(() => {
-    switch (this.kpi().deltaStatus) {
-      case 'good': return '▲';
-      case 'bad': return '▼';
+  /** Glyph shows the DIRECTION of change (sign of the delta), never good/bad.
+   *  Colour (deltaClass) carries good/bad, so e.g. "Expired +20%" is ▲ in red
+   *  and "Fill −1.2%" is ▼ in red — the arrow always agrees with the sign. */
+  readonly directionGlyph = computed(() => {
+    switch (this.kpi().deltaDirection) {
+      case 'up': return '▲';
+      case 'down': return '▼';
       default: return '—';
     }
   });

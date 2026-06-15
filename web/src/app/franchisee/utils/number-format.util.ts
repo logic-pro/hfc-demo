@@ -1,7 +1,7 @@
 // Single home for number/label formatting so no component reinvents it.
 // Every formatter handles null explicitly → "Unavailable", never "NaN" / "$NaN".
 
-import { KpiUnit, MetricStatus } from '../dashboard.models';
+import { DeltaDirection, KpiUnit, MetricStatus } from '../dashboard.models';
 
 export function formatCount(value: number | null | undefined): string {
   if (value === null || value === undefined) return 'Unavailable';
@@ -62,6 +62,17 @@ export function deltaStatus(
   if (ratio === null || ratio === undefined || ratio === 0) return 'neutral';
   const improving = higherIsBetter ? ratio > 0 : ratio < 0;
   return improving ? 'good' : 'bad';
+}
+
+/**
+ * Direction of a delta from its numeric sign — the GLYPH (▲/▼/—) reflects which
+ * way the number moved, NOT whether that move is good or bad. "Expired +20%"
+ * moved up (▲) even though it's bad; "Fill −1.2%" moved down (▼). Colour carries
+ * good/bad separately (deltaStatus), so the arrow never contradicts the sign.
+ */
+export function deltaDirection(ratio: number | null | undefined): DeltaDirection {
+  if (ratio === null || ratio === undefined || ratio === 0) return 'flat';
+  return ratio > 0 ? 'up' : 'down';
 }
 
 export function formatDayShort(iso: string): string {
