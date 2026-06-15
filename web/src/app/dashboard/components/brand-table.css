@@ -1,6 +1,9 @@
 :host { display: block; }
 
-.bt-card { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 14px; height: 100%; }
+/* min-width:0 lets the card shrink below the table's intrinsic width inside the
+   dist-grid track, so the .bt-scroll wrapper can actually scroll instead of
+   forcing the whole grid wide on narrow screens (#20, 375px). */
+.bt-card { padding: 18px 20px 16px; display: flex; flex-direction: column; gap: 14px; height: 100%; min-width: 0; }
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .bt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -10,7 +13,9 @@
 
 /* ── Table ──────────────────────────────────────────────────────────────── */
 .bt-scroll { overflow-x: auto; }
-.bt { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* min-width keeps the 8 columns readable: below it the wrapper scrolls rather
+   than crushing the cells (#20). */
+.bt { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
 
 .bt thead th {
   text-align: right; padding: 6px 10px 10px; font-size: 10.5px; font-weight: 600;

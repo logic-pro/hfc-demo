@@ -141,7 +141,7 @@ export class App implements OnInit {
     const key = crypto.randomUUID();
     this.api.deposit(appt.id, 5000, key).subscribe({
       next: () => {
-        this.notice.set(`Deposit captured for appointment #${appt.id} (idempotency-key ${key.slice(0, 8)}…).`);
+        this.notice.set(`Deposit captured for appointment #${appt.id}.`);
         this.refresh();
       },
       error: () => this.error.set('Deposit failed.'),
