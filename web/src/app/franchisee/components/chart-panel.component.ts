@@ -39,6 +39,9 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       }
     </section>
   `,
+  // Re-assert slate heading colour over the global dark-dashboard \`h1..h4\` rule
+  // (near-white --ink-0) that would otherwise ghost this title on the light card.
+  styles: [`h2 { color: #0f172a; }`], // slate-900
 })
 export class ChartPanelComponent {
   readonly title = input.required<string>();

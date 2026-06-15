@@ -140,15 +140,26 @@ export interface DashboardResponse {
 }
 
 // ── presentational view-models (formatted, status-ready) ─────────────────────
+
+/** Direction of the delta — drives the GLYPH (▲ ▼ —), independent of good/bad.
+ *  Status colour says "is this good or bad"; direction says "which way did it
+ *  move". Keeping them separate stops the ▼ +20% contradiction. */
+export type DeltaDirection = 'up' | 'down' | 'flat';
+
 export interface KpiCardVm {
   key: KpiKey;
   label: string;
   formattedValue: string;
   deltaLabel: string | null;
+  deltaDirection: DeltaDirection; // glyph direction, from the numeric delta sign
   deltaStatus: MetricStatus;   // colour of the delta chip (text-backed, never colour-only)
   status: MetricStatus;
   trend: number[];
   dataQuality: DataQuality;
   tooltip: string;
   drillTo: ActionStageFilter;
+  /** True when this metric has no activity this period (e.g. zero deposits).
+   *  Renders as an honest neutral "none this period" state — never a red alarm. */
+  isEmpty: boolean;
+  emptyLabel: string | null;   // e.g. "No deposits this period"
 }
