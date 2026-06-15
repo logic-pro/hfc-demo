@@ -7,8 +7,18 @@ name: post-deploy-e2e
 # HOW TO TRIGGER:
 #   1. Manually:  Actions tab -> post-deploy-e2e -> Run workflow (set base_url)
 #   2. From the CLI:  gh workflow run post-deploy-e2e.yml -f base_url=https://<app>.azurewebsites.net
-#   3. Chained after deploy: infra/deploy.sh can call (2) once /health is 200
-#      (delta's deploy health-gate task) so every deploy auto-verifies itself.
+#   3. Auto, after every deploy (VERIFIED chain): deploy is a script, not a GH
+#      workflow, so it self-dispatches this suite rather than us using a native
+#      `workflow_run` trigger. infra/deploy.sh:
+#        step 7  health gate  — polls https://<host>/health until 200 (fails the
+#                               deploy if it never goes healthy), then
+#        step 8  self-verify  — `gh workflow run post-deploy-e2e.yml -f base_url=…`
+#      So a successful deploy always kicks this e2e gate against the live URL.
+#      (Only caveat: step 8 needs an authenticated gh; if not, deploy.sh prints the
+#       exact manual command. Editing deploy.sh is out of this lane's scope — infra/.)
+#
+# Sibling gate: keep-warm.yml pings /health every ~10min (cron) to defeat free-tier
+# cold starts; it runs on schedule and is green hourly, independent of deploys.
 on:
   workflow_dispatch:
     inputs:
