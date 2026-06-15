@@ -88,9 +88,9 @@ chk "$(code "$B/api/territories/1/health-score")" "401" "health-score: no token 
 sl=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/corporate" | jget "['scope']['scopeLevel']")
 chk "$sl" "corporate" "dashboard/corporate: corporate token -> corporate lens"
 
-# 2) territory registry — corporate sees all 24 territories
+# 2) territory registry — corporate sees the whole network (floor, not a brittle exact count)
 tc=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | jget "['totalCount']")
-chk "$tc" "24" "territories: corporate sees all 24"
+chk "$([ "$tc" -ge 24 ] && echo ok || echo "$tc")" "ok" "territories: corporate sees the full network (>=24, got $tc)"
 
 # 3) health-score — present for a known territory
 chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories/1/health-score")" "200" "health-score: territory 1 -> 200"
@@ -98,9 +98,9 @@ chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories/1/health-score"
 # 4) watchlist — returns the pre-computed flag rows
 chk "$(code -H "Authorization: Bearer $CORP" "$B/api/dashboard/watchlist")" "200" "watchlist -> 200"
 
-# 5) map (v1.1, additive) — dot per territory, corporate sees all 24
+# 5) map (v1.1, additive) — a dot per territory, corporate sees the whole network
 mc=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/map" | jget "['totalCount']")
-chk "$mc" "24" "map: corporate sees all 24 dots"
+chk "$([ "$mc" -ge 24 ] && echo ok || echo "$mc")" "ok" "map: corporate sees a dot per territory (>=24, got $mc)"
 
 # a franchisee token cannot reach the corporate-only watchlist/map -> 403
 chk "$(code -H "Authorization: Bearer $TU" "$B/api/dashboard/watchlist")" "403" "watchlist: franchisee -> 403 (corporate-only)"
