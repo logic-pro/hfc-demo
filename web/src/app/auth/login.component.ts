@@ -166,11 +166,11 @@ export class LoginComponent implements OnInit {
       personas: [
         {
           id: 'network',
-          name: 'Sandra Chen',
-          role: 'HFC CEO',
+          name: 'HFC CEO',
+          role: 'Franchisor HQ — every territory',
           mint: () => this.api.networkToken(),
           apply: (res) =>
-            this.tenant.setCorporateSession('network', res.token, 'Sandra Chen · HFC CEO', 'HFC Network'),
+            this.tenant.setCorporateSession('network', res.token, 'HFC CEO', 'HFC Network'),
           target: '/corporate',
         },
       ],
