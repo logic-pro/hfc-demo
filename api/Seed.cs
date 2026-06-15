@@ -328,6 +328,48 @@ public static class Seed
                         StartUtc = bookingBase.AddDays(d).AddHours(h * 3),
                         IsBooked = false, Version = 0,
                     });
+
+            // ── Current in-progress month: seed measured activity so the operator
+            // dashboard's WTD/MTD filters aren't empty (the historical rows above all
+            // end at LatestPeriodId / May). These rows have NO MonthlyReport, so
+            // RecomputeRollup (report-driven) ignores them — they power ONLY the
+            // franchisee's live date-window query, never the corporate roll-up.
+            // Seed EVERY day of the month-so-far (incl. today + the current week) so
+            // BOTH the WTD and MTD filters are alive.
+            var today = DateTime.UtcNow.Date;
+            var monthStart0 = new DateTime(today.Year, today.Month, 1);
+            int daysSoFar = (today - monthStart0).Days + 1;
+            var cm = Trajectory(p, econ, Months - 1, 1.0, 1.0);   // latest-period quality mix
+            int perDay = Math.Max(2, econ.Capacity / 12);
+            for (int dayOffset = 0; dayOffset < daysSoFar; dayOffset++)
+            {
+                var day = monthStart0.AddDays(dayOffset);
+                int dBooked = Math.Max(1, (int)Math.Round(perDay * cm.Fill)); // >=1 booked/day so WTD is never empty
+                int dNoShow = (int)Math.Round(dBooked * cm.NoShow);
+                for (int s = 0; s < perDay; s++)
+                {
+                    var start = day.AddHours(9 + s * 3);
+                    bool isBooked = s < dBooked;
+                    db.Slots.Add(new Slot
+                    {
+                        Id = slotId, FranchiseeId = franchiseeId, BrandId = p.Brand,
+                        TerritoryId = p.Id, StartUtc = start, IsBooked = isBooked, Version = 0,
+                    });
+                    if (isBooked)
+                    {
+                        string status = s < (dBooked - dNoShow) ? "completed" : "no_show";
+                        db.Appointments.Add(new Appointment
+                        {
+                            FranchiseeId = franchiseeId, BrandId = p.Brand,
+                            TerritoryId = p.Id, SlotId = slotId,
+                            StartUtc = start, CustomerName = $"Customer {p.Id}-cur-{dayOffset}-{s}",
+                            Service = econ.Service, Status = status,
+                            InvoiceCents = status == "completed" ? (int)(econ.TicketUsd * 100) : 0,
+                        });
+                    }
+                    slotId++;
+                }
+            }
         }
     }
 
