@@ -1,5 +1,5 @@
 <header class="topbar">
-  <div class="brandmark">HFC<span>scheduling</span></div>
+  <h1 class="brandmark">HFC<span>scheduling</span></h1>
   <div class="tagline">Eight Brands. One Platform. — multi-tenant demo</div>
 </header>
 
@@ -7,8 +7,8 @@
   <!-- Tenant picker: selecting a franchisee mints a scoped token (login stand-in).
        Two franchisees per brand show the isolation boundary: same brand, separate data. -->
   <section class="picker">
-    <label>Sign in as franchisee (tenant boundary):</label>
-    <div class="brand-chips">
+    <span class="picker-label" id="picker-label">Sign in as franchisee (tenant boundary):</span>
+    <div class="brand-chips" role="group" aria-labelledby="picker-label">
       @for (f of franchisees(); track f.id) {
         <button
           class="chip"
@@ -42,6 +42,7 @@
       <div class="intake-row">
         <textarea
           rows="2"
+          aria-label="Describe the job in plain words to draft a booking with AI"
           placeholder="e.g. Hi, this is Dana in Tustin — my water heater burst and flooded the garage, need someone ASAP, mornings are best."
           [ngModel]="intakeText()"
           (ngModelChange)="intakeText.set($event)"></textarea>

@@ -15,14 +15,16 @@
   width: min(440px, 92vw); height: 100vh;
   background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
   border-left: 1px solid var(--surface-line);
-  box-shadow: var(--shadow-pop);
-  transform: translateX(100%);
+  /* Closed: park fully off-screen by the drawer's OWN width (translate %, not a
+     fixed px), and drop the pop-shadow — its ~32px blur otherwise bleeds back
+     into the viewport's right edge on wider screens (#14). Shadow returns on open. */
+  transform: translate(100%, 0);
   transition: transform var(--t-slow) var(--ease);
   overflow-y: auto;
   padding: 22px 22px 40px;
   display: flex; flex-direction: column; gap: 20px;
 }
-.drawer.open { transform: translateX(0); }
+.drawer.open { transform: translate(0, 0); box-shadow: var(--shadow-pop); }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
 .sc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }

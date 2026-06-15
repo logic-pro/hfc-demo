@@ -12,6 +12,9 @@ import { TenantService } from './tenant.service';
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive],
   template: `
+    <!-- First focusable element: lets keyboard users jump past the nav to the
+         routed surface. Visually hidden until focused (see .skip-nav). -->
+    <a class="skip-nav" href="#main-content">Skip to main content</a>
     @if (tenant.isAuthenticated()) {
       <nav class="nav">
         <span class="mark">HFC<span>platform</span></span>
@@ -27,11 +30,31 @@ import { TenantService } from './tenant.service';
         <button type="button" class="signout" (click)="signOut()">Sign out</button>
       </nav>
     }
-    <router-outlet />
+    <div id="main-content" tabindex="-1">
+      <router-outlet />
+    </div>
   `,
   styles: [
     `
       :host { display: block; min-height: 100vh; }
+      #main-content { display: block; }
+      #main-content:focus { outline: none; }
+      /* Skip link: off-screen until it receives focus, then pinned top-left. */
+      .skip-nav {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 100;
+        background: #5fe3c0;
+        color: #042;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.5rem 0.9rem;
+        border-radius: 0 0 6px 0;
+        text-decoration: none;
+      }
+      .skip-nav:focus { left: 0; }
       .nav {
         display: flex;
         align-items: center;
