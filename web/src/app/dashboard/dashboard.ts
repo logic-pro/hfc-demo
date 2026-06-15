@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DashboardDataService } from './dashboard-data.service';
+import { TenantService } from '../tenant.service';
 import {
   CorporateDashboard, ProvenanceType, TerritoryHealthScore, TerritoryListItem, WatchlistFlag,
 } from './dashboard.models';
@@ -27,6 +28,22 @@ import { brandAccent } from './ui/brand';
 })
 export class DashboardComponent {
   private data = inject(DashboardDataService);
+  private tenant = inject(TenantService);
+
+  // Scope-aware eyebrow: the SAME command center, re-scoped by the signed-in
+  // persona. The server already filters KPIs/map/watchlist/brand-table by the
+  // token's scope claim — this just makes the active scope legible in the header.
+  readonly scopeEyebrow = computed(() => {
+    const name = this.tenant.scopeName();
+    switch (this.tenant.scope()) {
+      case 'brand':
+        return `${name} · Brand View`;
+      case 'region':
+        return `${name} · Region View`;
+      default:
+        return 'Franchisor Network · Portfolio View';
+    }
+  });
 
   readonly corporate = signal<CorporateDashboard | null>(null);
   readonly territories = signal<TerritoryListItem[]>([]);

@@ -3,32 +3,13 @@ import { inject } from '@angular/core';
 import { TenantService } from './tenant.service';
 
 // Cross-cutting concern handled once, not in every service call: attach the
-// bearer token to every outgoing request. The server resolves the tenant from
-// the token's verified claim — this interceptor is the single client-side seam
-// where auth is applied. (Functional interceptor — Angular's modern API.)
-// Read-down boundary (ADR-19): the franchisor executive dashboard reads ACROSS
-// franchisees, so the franchisee tenant token must never be attached to its
-// requests — that would scope a cross-franchisee read to one tenant (or 403).
-// These endpoints carry their own corporate/regional-scoped credential.
-//
-// This MUST be an exact corporate allow-list, not a `/api/dashboard/` prefix:
-// the FRANCHISEE ops dashboard calls `/api/dashboard/territories` (its territory
-// picker) which IS tenant-scoped and needs the token. A broad prefix stripped it,
-// sending that call out unauthenticated. Every entry below is a corporate read in
-// DashboardDataService; note `/api/dashboard/territories` does NOT contain the
-// substring `/api/territories`, so the franchisee call correctly keeps its token.
-const READ_DOWN_PATHS = [
-  '/api/dashboard/corporate', // corporate roll-up
-  '/api/dashboard/watchlist', // at-risk watchlist
-  '/api/dashboard/map',       // map roll-up
-  '/api/territories',         // territory list + /{id}/health-score
-];
-
+// stored bearer token to every outgoing request. The server authorizes by the
+// token's verified scope claim (network / brand / region gate the read-down
+// corporate endpoints; a franchisee claim gates the operator endpoints), so the
+// client no longer needs to know which URLs are corporate vs franchisee. (This
+// replaces the old read-down strip-list, which mis-stripped the token from the
+// franchisee's /api/dashboard/territories call.) Functional interceptor.
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
-  if (READ_DOWN_PATHS.some((path) => req.url.includes(path))) {
-    return next(req);
-  }
-
   const token = inject(TenantService).token();
   if (!token) return next(req);
   return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }));
