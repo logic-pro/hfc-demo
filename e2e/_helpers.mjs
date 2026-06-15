@@ -68,3 +68,29 @@ export async function gotoReady(page, url, keySelector, { timeout = 25000 } = {}
   }
   throw lastErr;
 }
+
+// Drive the /login persona picker (the single 4-tier entry point: `/` and any
+// unknown path redirect here). `tier` matches the tier <h2> heading
+// ("Franchisor HQ" | "Brand" | "Region" | "Franchisee"); `name` is a substring
+// of the chip's name (blank -> first chip in that tier). Picking a chip mints a
+// scoped token and routes: network/brand/region -> /corporate, franchisee ->
+// /dashboard. Returns the persona name actually clicked.
+export async function loginPersona(page, web, { tier, name = "" } = {}) {
+  // Root redirects to /login; the chips only render once franchisees() resolves
+  // (proves the API is reachable), so wait on a chip, not just the card.
+  await gotoReady(page, web, ".login .chip");
+  const tierBlock = page.locator(".tier", { has: page.locator("h2", { hasText: tier }) });
+  await tierBlock.waitFor({ state: "visible", timeout: 15000 });
+  const chip = tierBlock.locator(".chip", { hasText: name }).first();
+  const label = (await chip.locator(".chip-name").innerText().catch(() => name)).trim();
+  await chip.click();
+  return label;
+}
+
+// True if the live persona picker is rendering a given tier (brand/region tiers
+// stay hidden until their catalogs/scope-tokens exist server-side). Lets a driver
+// drive an optional tier only when it's actually present — forward-compatible.
+export async function tierPresent(page, tier, { timeout = 4000 } = {}) {
+  const block = page.locator(".tier", { has: page.locator("h2", { hasText: tier }) });
+  return block.first().isVisible({ timeout }).catch(() => false);
+}
