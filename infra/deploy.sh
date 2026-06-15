@@ -17,6 +17,9 @@ RG=${RG:-hfc-demo-rg}
 # quota. If deploy fails with SubscriptionIsOverQuotaForSku, try another region.
 LOCATION=${LOCATION:-centralus}
 PREFIX=${PREFIX:-hfcdemo}
+# App Service plan SKU. F1 (Free) = cheapest but cold-starts after ~20min idle and
+# CANNOT run Always On. Set SKU=B1 (or higher) for Always On / no cold start (paid).
+SKU=${SKU:-F1}
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 command -v az >/dev/null || { echo "Azure CLI (az) not found."; exit 1; }
@@ -33,7 +36,7 @@ echo "Deploying Bicep (this provisions ~10 resources; SQL serverless takes a few
 OUT=$(az deployment group create \
   -g "$RG" \
   --template-file "$ROOT/infra/main.bicep" \
-  --parameters namePrefix="$PREFIX" sqlAadAdminObjectId="$ADMIN_OID" sqlAadAdminLogin="$ADMIN_UPN" \
+  --parameters namePrefix="$PREFIX" sqlAadAdminObjectId="$ADMIN_OID" sqlAadAdminLogin="$ADMIN_UPN" apiPlanSku="$SKU" \
   --query properties.outputs -o json)
 
 API_HOST=$(echo "$OUT"  | python3 -c "import sys,json;print(json.load(sys.stdin)['apiHostName']['value'])")
@@ -50,6 +53,21 @@ ALTER ROLE db_datareader ADD MEMBER [${API_NAME}];
 ALTER ROLE db_datawriter ADD MEMBER [${API_NAME}];
 GO
 "; fi
+
+# 3b. ALWAYS ON — keep the app resident so the first hit after idle doesn't cold-start.
+#     bicep already sets siteConfig.alwaysOn for Basic+; this re-asserts it and, on
+#     Free/Shared (where Always On is impossible), warns loudly instead of failing silently.
+PLAN_TIER=$(az appservice plan show -g "$RG" -n "${PREFIX}-plan" --query sku.tier -o tsv 2>/dev/null || echo "")
+case "$PLAN_TIER" in
+  Free|Shared|"")
+    echo "⚠️  App Service plan tier is '${PLAN_TIER:-unknown}' (SKU=$SKU) — Always On is NOT available below Basic."
+    echo "    => the app cold-starts after ~20min idle; the first hit can 503/timeout."
+    echo "    Kill cold starts by redeploying on Basic+:   SKU=B1 ./infra/deploy.sh"
+    echo "    Meanwhile .github/workflows/keep-warm.yml pings /health on a cron to keep it warm (\$0)." ;;
+  *)
+    echo "Enabling Always On on the API (tier=$PLAN_TIER)..."
+    az webapp config set -g "$RG" -n "$API_NAME" --always-on true -o none && echo "✅ Always On enabled — no cold starts." ;;
+esac
 
 # 4. Build the Angular SPA (same-origin: it will be served BY the API) and copy
 #    it into the API's wwwroot, so one App Service serves both SPA and API.
