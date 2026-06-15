@@ -74,7 +74,17 @@ body { font-feature-settings: 'ss01' 1, 'cv01' 1; }
 /* Tabular numbers everywhere a figure is shown — alignment is the whole point. */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
 
-h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; color: var(--ink-0); margin: 0; letter-spacing: -0.01em; }
+/* Heading TYPOGRAPHY is global; heading COLOR is not. The near-white --ink-0 is
+   only legible on the dark executive canvas — left global+unlayered it outranked
+   Tailwind's @layer utilities and whitewashed every heading on the light operator
+   and scheduling surfaces. Color is scoped to the dark surface below; light
+   surfaces inherit their own slate ink (Tailwind text-slate-* utilities, or the
+   booking shell's :host --ink). */
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+
+/* Dark executive command center (/corporate) — bright hero-ink headings.
+   (/login is self-contained; light /dashboard + /booking inherit slate ink.) */
+app-dashboard h1, app-dashboard h2, app-dashboard h3, app-dashboard h4 { color: var(--ink-0); }
 
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }

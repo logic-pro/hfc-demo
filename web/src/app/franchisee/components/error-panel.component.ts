@@ -15,9 +15,6 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
       </button>
     </div>
   `,
-  // Re-assert the red heading colour over the global dark-dashboard \`h1..h4\` rule
-  // (near-white --ink-0) that would otherwise ghost this alert title.
-  styles: [`h3 { color: #7f1d1d; }`], // red-900
 })
 export class ErrorPanelComponent {
   readonly title = input<string>('Unable to load the dashboard');
