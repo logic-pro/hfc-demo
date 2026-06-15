@@ -34,6 +34,10 @@ public sealed class StubDashboardReadModel : IDashboardReadModel
     private readonly Dictionary<int, TerritoryScore> _scores = new();
     private readonly List<WatchlistFlag> _watchlist = new();
     private readonly CorporateRollup _corporate;
+    // Pre-baked scoped roll-ups (RBAC read-down) — brand/region get scoped vital
+    // signs, never the network totals. Mirrors the EF read model.
+    private readonly Dictionary<int, CorporateRollup> _brandRollups = new();
+    private readonly Dictionary<int, CorporateRollup> _regionRollups = new();
 
     public IReadOnlyList<TerritoryDim> Territories => _dims;
     public IReadOnlyList<WatchlistFlag> Watchlist => _watchlist;
@@ -41,13 +45,21 @@ public sealed class StubDashboardReadModel : IDashboardReadModel
     public TerritoryScore? Score(int territoryId, int periodId) =>
         periodId == LatestPeriodId && _scores.TryGetValue(territoryId, out var s) ? s : null;
 
-    public CorporateRollup Corporate(int periodId, int trailingWindow, int? brandId, int? regionId)
+    public CorporateRollup Corporate(DashboardScope scope, int periodId, int trailingWindow, int? brandId, int? regionId)
     {
+        // Brand / region read-down: serve the pre-baked scoped roll-up (scoped vital
+        // signs + that scope's brand rows). Already narrowed — no network cross-filter.
+        if (scope.ScopeLevel == "brand" && scope.ScopeBrandId is int bid
+            && _brandRollups.TryGetValue(bid, out var brandRoll))
+            return brandRoll with { PeriodId = periodId, TrailingWindowMonths = trailingWindow };
+        if (scope.ScopeLevel == "region" && scope.ScopeRegionId is int rid
+            && _regionRollups.TryGetValue(rid, out var regionRoll))
+            return regionRoll with { PeriodId = periodId, TrailingWindowMonths = trailingWindow };
+
+        // Network scope: the portfolio roll-up with the CEO's optional brand cross-filter.
         var brands = _corporate.BrandComparison
             .Where(b => brandId is null || b.BrandId == brandId)
             .ToList();
-        // regionId can't narrow a portfolio brand roll-up without re-aggregating
-        // (forbidden at request time); we note it rather than fake it.
         var notes = _corporate.DataNotes.ToList();
         if (regionId is not null)
             notes.Add(("info", "Region filter applies to territory views; brand roll-ups remain portfolio-wide."));
@@ -190,19 +202,33 @@ public sealed class StubDashboardReadModel : IDashboardReadModel
                     "No reported revenue this royalty cycle; financial score withheld."));
         }
 
-        _corporate = BuildCorporate();
+        // Pre-bake the roll-up per scope (network + each brand + each region) so a
+        // read-down principal reads honestly scoped vital signs, never network totals.
+        _corporate = BuildRollup(_rows, _dims);
+        foreach (var bid in _dims.Select(d => d.BrandId).Distinct())
+        {
+            var bdims = _dims.Where(d => d.BrandId == bid).ToList();
+            var bterr = bdims.Select(d => d.TerritoryId).ToHashSet();
+            _brandRollups[bid] = BuildRollup(_rows.Where(r => bterr.Contains(r.TerritoryId)).ToList(), bdims);
+        }
+        foreach (var rid in _dims.Select(d => d.RegionId).Distinct())
+        {
+            var rdims = _dims.Where(d => d.RegionId == rid).ToList();
+            var rterr = rdims.Select(d => d.TerritoryId).ToHashSet();
+            _regionRollups[rid] = BuildRollup(_rows.Where(r => rterr.Contains(r.TerritoryId)).ToList(), rdims);
+        }
     }
 
-    // ── Boot-time roll-up (territory → brand → corporate) ────────────────────
-    private CorporateRollup BuildCorporate()
+    // ── Boot-time roll-up over a SCOPE's rows+dims (network = all subsets) ────
+    private CorporateRollup BuildRollup(List<TerritoryPeriodSummary> rows, List<TerritoryDim> dims)
     {
-        int territoryCount = _dims.Count;
-        int atRisk = _rows.Count(r => r.CompositeScore < 50);
-        int jobsLtm = _rows.Sum(r => r.JobsCompleted) * 12;             // illustrative LTM
-        double systemRevenueLtm = _rows.Sum(r => r.GrossRevenue) * 12;
-        double royaltyLtm = _rows.Sum(r => r.RoyaltyRevenue) * 12;
-        double netSlotFill = _rows.Average(r => r.SlotFillRate);
-        int networkNps = (int)Math.Round(_rows.Average(r => r.NpsScore));
+        int territoryCount = dims.Count;
+        int atRisk = rows.Count(r => r.CompositeScore < 50);
+        int jobsLtm = rows.Sum(r => r.JobsCompleted) * 12;             // illustrative LTM
+        double systemRevenueLtm = rows.Sum(r => r.GrossRevenue) * 12;
+        double royaltyLtm = rows.Sum(r => r.RoyaltyRevenue) * 12;
+        double netSlotFill = rows.Count > 0 ? rows.Average(r => r.SlotFillRate) : 0;
+        int networkNps = rows.Count > 0 ? (int)Math.Round(rows.Average(r => r.NpsScore)) : 0;
 
         var vitalSigns = new List<VitalSign>
         {
@@ -224,7 +250,7 @@ public sealed class StubDashboardReadModel : IDashboardReadModel
                 null, null, "seeded", AsOfReported, "seeded", "low"),
         };
 
-        var brandComparison = _dims
+        var brandComparison = dims
             .GroupBy(d => d.BrandId)
             .OrderBy(g => g.Key)
             .Select(g =>

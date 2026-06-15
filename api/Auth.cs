@@ -25,15 +25,28 @@ public static class HfcClaims
 {
     public const string FranchiseeId = "franchisee_id";  // the isolation key
     public const string BrandId = "brand_id";             // the grouping
-    // Franchisor (read-down) role. A `corporate` value admits the executive
-    // dashboard endpoints via the "Corporate" policy; a franchisee principal
-    // carries `franchisee_id` instead and is tenant-scoped, never corporate.
-    public const string CorporateRole = "corporate";
+    // Franchisor (read-down) ROLES — the 4-tier RBAC hierarchy's corporate plane.
+    // All three admit the executive dashboard via the "Corporate" policy; the
+    // scope NARROWS by role: network (corporate) sees all, brand/region scope to a
+    // single brand/region id (carried in the scope-id claims below). A franchisee
+    // principal carries `franchisee_id` instead and is tenant-scoped, never corporate.
+    public const string CorporateRole = "corporate";   // network — every territory
+    public const string BrandRole = "brand";            // one brand's territories
+    public const string RegionRole = "region";          // one region's territories
+
+    // Scope-id claims for the brand/region read-down tiers (the numeric dashboard
+    // id the scope narrows to). Distinct from the operational `brand_id` slug above
+    // so the franchisee tenant path is never confused with a read-down scope.
+    public const string ScopeBrandId = "scope_brand_id";
+    public const string ScopeRegionId = "scope_region_id";
 }
 
 // Authorization policy names (one source of truth for endpoint .RequireAuthorization).
 public static class HfcPolicies
 {
+    // Admits the franchisor read-down plane — network/brand/region — to the
+    // executive dashboard. The scope (how much they see) is resolved separately
+    // from the token claims (DashboardScopeResolver); the policy only gates access.
     public const string Corporate = "Corporate";
 }
 
@@ -119,6 +132,42 @@ public static class DevTokens
             signingCredentials: creds);
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    // Mint a BRAND read-down token: role=brand + the brand's numeric scope id. The
+    // "Corporate" policy admits it; the scope resolver narrows it to that brand's
+    // territories. No franchisee_id — it is a read-down principal, not an operator.
+    public static string MintBrand(int brandId, string? signingKey = null,
+        string issuer = AuthDefaults.Issuer, string audience = AuthDefaults.Audience,
+        TimeSpan? lifetime = null) =>
+        MintScoped(HfcClaims.BrandRole, HfcClaims.ScopeBrandId, brandId, $"brand-{brandId}@dev",
+            signingKey, issuer, audience, lifetime);
+
+    // Mint a REGION read-down token: role=region + the region's numeric scope id.
+    public static string MintRegion(int regionId, string? signingKey = null,
+        string issuer = AuthDefaults.Issuer, string audience = AuthDefaults.Audience,
+        TimeSpan? lifetime = null) =>
+        MintScoped(HfcClaims.RegionRole, HfcClaims.ScopeRegionId, regionId, $"region-{regionId}@dev",
+            signingKey, issuer, audience, lifetime);
+
+    private static string MintScoped(string role, string scopeClaim, int scopeId, string sub,
+        string? signingKey, string issuer, string audience, TimeSpan? lifetime)
+    {
+        var creds = new SigningCredentials(AuthDefaults.DevKey(signingKey),
+            SecurityAlgorithms.HmacSha256);
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, sub),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(scopeClaim, scopeId.ToString()),
+            },
+            notBefore: DateTime.UtcNow.AddMinutes(-1),
+            expires: DateTime.UtcNow.Add(lifetime ?? TimeSpan.FromHours(8)),
+            signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
 }
 
 public static class AuthExtensions
@@ -172,7 +221,7 @@ public static class AuthExtensions
         services.AddAuthorization(options =>
         {
             options.AddPolicy(HfcPolicies.Corporate, policy =>
-                policy.RequireRole(HfcClaims.CorporateRole));
+                policy.RequireRole(HfcClaims.CorporateRole, HfcClaims.BrandRole, HfcClaims.RegionRole));
         });
         return services;
     }

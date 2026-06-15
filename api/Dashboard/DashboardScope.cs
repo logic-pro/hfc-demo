@@ -20,11 +20,20 @@ public sealed class DashboardScope
     // null for the corporate lens. Informational — the boundary is AllowedTerritoryIds.
     public string? FranchiseeId { get; init; }
 
+    // The numeric brand/region the read-down scope narrows to (null for network /
+    // franchisee). Drives which pre-baked scoped roll-up the corporate handler reads.
+    public int? ScopeBrandId { get; init; }
+    public int? ScopeRegionId { get; init; }
+
     // null => unrestricted (corporate). Non-null => the only territories this
     // caller may see. Empty set => fail-closed (sees nothing).
     public IReadOnlySet<int>? AllowedTerritoryIds { get; init; }
 
     public bool IsCorporate => ScopeLevel == "corporate";
+    // The franchisor read-down plane (network / brand / region) — all three may
+    // open the executive dashboard; only `franchisee` (the operator) may not.
+    public bool IsReadDown =>
+        ScopeLevel is "corporate" or "brand" or "region";
     public bool Allows(int territoryId) =>
         AllowedTerritoryIds is null || AllowedTerritoryIds.Contains(territoryId);
 
@@ -48,6 +57,36 @@ public static class DashboardScopeResolver
     // pinned to the signed token.
     public static DashboardScope ScopeFor(ClaimsPrincipal? user, IDashboardReadModel readModel)
     {
+        // ── Read-down hierarchy (network → brand → region) from the role + scope-id
+        // claims minted by the role-based login. Each narrows the territory set; the
+        // "Corporate" policy has already admitted them at the endpoint. ────────────
+        if (user?.IsInRole(HfcClaims.CorporateRole) == true)
+            return new DashboardScope { ScopeLevel = "corporate", AllowedTerritoryIds = null };
+
+        if (user?.IsInRole(HfcClaims.BrandRole) == true)
+        {
+            int? brandId = ParseId(user.FindFirst(HfcClaims.ScopeBrandId)?.Value);
+            var allowed = brandId is int bid
+                ? readModel.Territories.Where(t => t.BrandId == bid).Select(t => t.TerritoryId).ToHashSet()
+                : new HashSet<int>();                          // missing id => fail-closed
+            return new DashboardScope
+            {
+                ScopeLevel = "brand", ScopeBrandId = brandId, AllowedTerritoryIds = allowed,
+            };
+        }
+
+        if (user?.IsInRole(HfcClaims.RegionRole) == true)
+        {
+            int? regionId = ParseId(user.FindFirst(HfcClaims.ScopeRegionId)?.Value);
+            var allowed = regionId is int rid
+                ? readModel.Territories.Where(t => t.RegionId == rid).Select(t => t.TerritoryId).ToHashSet()
+                : new HashSet<int>();                          // missing id => fail-closed
+            return new DashboardScope
+            {
+                ScopeLevel = "region", ScopeRegionId = regionId, AllowedTerritoryIds = allowed,
+            };
+        }
+
         var franchiseeId = user?.FindFirst(HfcClaims.FranchiseeId)?.Value;
 
         if (!string.IsNullOrWhiteSpace(franchiseeId))
@@ -78,6 +117,8 @@ public static class DashboardScopeResolver
             };
         }
 
+        // (ParseId lives at the bottom of this class.)
+
         // No franchisee_id claim => corporate lens (all). In the demo this also
         // covers anonymous access (the corporate dashboard is the zero-config
         // default; the endpoints are not auth-gated). In prod a franchisor
@@ -85,4 +126,7 @@ public static class DashboardScopeResolver
         // claim-gated, never the old spoofable header.
         return new DashboardScope { ScopeLevel = "corporate", AllowedTerritoryIds = null };
     }
+
+    private static int? ParseId(string? raw) =>
+        int.TryParse(raw, out var n) ? n : null;
 }

@@ -26,16 +26,17 @@ public static class DashboardEndpoints
             int? period, int? trailingWindow, int? brandId, int? regionId) =>
         {
             var scope = holder.Scope;
-            // The corporate roll-up is a portfolio aggregate; narrowing it to one
-            // franchisee would require request-time re-aggregation (forbidden).
-            // A franchisee uses the territory-scoped endpoints instead.
-            if (!scope.IsCorporate)
+            // The executive dashboard is the franchisor read-down plane: network,
+            // brand, and region scopes all read it (the read model serves each a
+            // PRE-BAKED scoped roll-up). A franchisee (operator) uses the territory-
+            // scoped operator endpoints instead — never this portfolio view.
+            if (!scope.IsReadDown)
                 return Results.Problem(statusCode: 403,
                     title: "Corporate scope required for the corporate dashboard.");
 
             int periodId = period ?? rm.LatestPeriodId;
             int window = trailingWindow ?? 12;
-            var roll = rm.Corporate(periodId, window, brandId, regionId);
+            var roll = rm.Corporate(scope, periodId, window, brandId, regionId);
 
             var dto = new CorporateDashboardDto(
                 new PeriodDto(roll.PeriodId, roll.PeriodLabel, roll.TrailingWindowMonths),
