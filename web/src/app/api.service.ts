@@ -30,7 +30,7 @@ export class ApiService {
     return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { franchiseeId });
   }
   networkToken(): Observable<DevTokenResponse> {
-    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { scope: 'network' });
+    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { role: 'corporate' });
   }
   brandToken(brandId: number): Observable<DevTokenResponse> {
     return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { scope: 'brand', brandId });
