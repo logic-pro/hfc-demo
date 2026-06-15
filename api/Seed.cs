@@ -51,11 +51,11 @@ public static class Seed
         ("budget-blinds",   "Budget Blinds",         "Custom window coverings, in-home.", 1, "project_installation", 0.05),
         ("two-maids",       "Two Maids",             "Residential cleaning.",             2, "recurring_service",    0.06),
         ("lightspeed",      "Lightspeed Restoration","Water, fire & mold restoration.",   3, "emergency_response",   0.08),
-        ("tailored-closet", "The Tailored Closet",   "Custom closets & storage.",         4, "", 0),
-        ("premier-garage",  "PremierGarage",         "Garage cabinets, floors & storage.",5, "", 0),
-        ("kitchen-tuneup",  "Kitchen Tune-Up",       "Cabinet refacing & redooring.",     6, "", 0),
-        ("bath-tuneup",     "Bath Tune-Up",          "One-day bath updates.",             7, "", 0),
-        ("aussie-pet",      "Aussie Pet Mobile",     "Mobile pet grooming.",              8, "", 0),
+        ("tailored-closet", "The Tailored Closet",   "Custom closets & storage.",         4, "project_installation", 0.05),
+        ("premier-garage",  "PremierGarage",         "Garage cabinets, floors & storage.",5, "project_installation", 0.05),
+        ("kitchen-tuneup",  "Kitchen Tune-Up",       "Cabinet refacing & redooring.",     6, "project_installation", 0.06),
+        ("bath-tuneup",     "Bath Tune-Up",          "One-day bath updates.",             7, "project_installation", 0.06),
+        ("aussie-pet",      "Aussie Pet Mobile",     "Mobile pet grooming.",              8, "recurring_service",    0.07),
     };
 
     private static readonly (int Id, string Name)[] Regions = { (1, "West"), (2, "East") };
@@ -70,6 +70,11 @@ public static class Seed
         ["budget-blinds"] = new(16, 2600, 95_000, "Window covering install"),
         ["two-maids"]     = new(26,  260, 48_000, "Recurring home cleaning"),
         ["lightspeed"]    = new(16, 4500, 80_000, "Water/fire/mold mitigation"),
+        ["tailored-closet"]= new(14, 3200, 88_000, "Custom closet install"),
+        ["premier-garage"] = new(12, 4800, 92_000, "Garage cabinet & floor install"),
+        ["kitchen-tuneup"] = new(18, 1900, 64_000, "Cabinet refacing"),
+        ["bath-tuneup"]    = new(20, 1400, 52_000, "One-day bath update"),
+        ["aussie-pet"]     = new(30,   95, 28_000, "Mobile pet grooming"),
     };
 
     // tenure → open date (anchored so the band is realistic at the latest period)
@@ -121,6 +126,41 @@ public static class Seed
         new(22,"lightspeed","Jacksonville",   "Jacksonville, FL",2,30.33,-81.66,"established","First Coast Restoration LLC", "average",""),
         new(23,"lightspeed","Richmond",       "Richmond, VA",    2,37.54,-77.44,"established","Commonwealth Recovery Group", "atrisk", "royalty_late"),
         new(24,"lightspeed","Savannah",       "Savannah, GA",    2,32.08,-81.09,"established","Coastal Empire Restoration",  "soft",   ""),
+
+        // ── The Tailored Closet (project_installation) — ids 25..29 ───────────
+        new(25,"tailored-closet","Austin Metro",       "Austin, TX",     2,30.27,-97.74, "established","Hill Country Closets LLC",   "strong", ""),
+        new(26,"tailored-closet","Dallas North",       "Dallas, TX",     2,32.78,-96.80, "mature",     "Trinity Storage Solutions", "star",   ""),
+        new(27,"tailored-closet","Scottsdale",         "Scottsdale, AZ", 1,33.49,-111.92,"established","Sonoran Closet Co",          "healthy",""),
+        new(28,"tailored-closet","Twin Cities",        "Minneapolis, MN",2,44.98,-93.27, "established","North Star Organizers",      "average",""),
+        new(29,"tailored-closet","Sacramento Foothills","Roseville, CA",  1,38.75,-121.29,"ramping",   "Capital Closet Works",       "soft",   ""),
+
+        // ── PremierGarage (project_installation) — ids 30..34 ─────────────────
+        new(30,"premier-garage","Houston West",        "Houston, TX",    2,29.76,-95.37, "established","Bayou Garage Systems",       "strong", ""),
+        new(31,"premier-garage","Chicago North Shore", "Evanston, IL",   2,42.05,-87.69, "mature",     "Lakeshore Garage Co",       "healthy",""),
+        new(32,"premier-garage","Phoenix East Valley", "Mesa, AZ",       1,33.42,-111.83,"established","Desert Garage Pros",         "average",""),
+        new(33,"premier-garage","Silicon Valley",      "San Jose, CA",   1,37.34,-121.89,"mature",     "Valley Garage Interiors",   "star",   ""),
+        new(34,"premier-garage","Kansas City",         "Kansas City, MO",2,39.10,-94.58, "ramping",   "Heartland Garage Works",     "soft",   ""),
+
+        // ── Kitchen Tune-Up (project_installation) — ids 35..39 ───────────────
+        new(35,"kitchen-tuneup","Charlotte South",     "Charlotte, NC",  2,35.10,-80.86, "established","Queen City Kitchens",       "healthy",""),
+        new(36,"kitchen-tuneup","Indianapolis",        "Indianapolis, IN",2,39.77,-86.16,"established","Crossroads Cabinet Co",      "average",""),
+        new(37,"kitchen-tuneup","Las Vegas Summerlin", "Las Vegas, NV",  1,36.16,-115.33,"ramping",   "Mojave Kitchen Works",       "soft",   ""),
+        new(38,"kitchen-tuneup","Portland West",       "Beaverton, OR",  1,45.49,-122.80,"established","Cascade Cabinet Refacing",   "strong", ""),
+        new(39,"kitchen-tuneup","Atlanta South",       "Atlanta, GA",    2,33.65,-84.42, "established","Southside Kitchen Group",    "atrisk", "revenue_deterioration"),
+
+        // ── Bath Tune-Up (project_installation) — ids 40..44 ──────────────────
+        new(40,"bath-tuneup","Tampa North",            "Tampa, FL",      2,28.07,-82.45, "established","Gulf Coast Baths LLC",       "strong", ""),
+        new(41,"bath-tuneup","Denver South",           "Centennial, CO", 1,39.58,-104.88,"established","Mile High Bath Co",          "healthy",""),
+        new(42,"bath-tuneup","Salt Lake South",        "Sandy, UT",      1,40.57,-111.88,"ramping",   "Wasatch Bath Works",         "average",""),
+        new(43,"bath-tuneup","Columbus East",          "Columbus, OH",   2,39.99,-82.89, "established","Buckeye Bath Updates",       "soft",   ""),
+        new(44,"bath-tuneup","Nashville South",        "Franklin, TN",   2,35.92,-86.87, "established","Music City Baths",           "atrisk", "no_show_spike"),
+
+        // ── Aussie Pet Mobile (recurring_service) — ids 45..49 ────────────────
+        new(45,"aussie-pet","San Diego North",         "Carlsbad, CA",   1,33.16,-117.35,"mature",     "Coastal Pet Care Co",       "star",   ""),
+        new(46,"aussie-pet","South County",            "Mission Viejo, CA",1,33.60,-117.67,"established","South County Pet Spa",     "strong", ""),
+        new(47,"aussie-pet","Seattle Eastside",        "Bellevue, WA",   1,47.61,-122.20,"established","Eastside Pet Mobile",        "healthy",""),
+        new(48,"aussie-pet","Austin South",            "Austin, TX",     2,30.20,-97.79, "ramping",   "Lone Star Pet Grooming",     "average",""),
+        new(49,"aussie-pet","Charlotte North",         "Huntersville, NC",2,35.41,-80.84,"established","Carolina Mobile Pets",       "soft",   ""),
     };
 
     public static void Run(AppDb db)
