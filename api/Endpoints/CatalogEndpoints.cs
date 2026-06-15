@@ -34,6 +34,20 @@ public static class CatalogEndpoints
         {
             app.MapPost("/api/dev/token", async (DevTokenRequest req, AppDb db) =>
             {
+                // Corporate (franchisor) login: role-based, no tenant. Mints the
+                // role=corporate token the executive dashboard attaches; admitted by
+                // the "Corporate" policy. Shared auth contract with the web side.
+                if (string.Equals(req.Role, HfcClaims.CorporateRole, StringComparison.OrdinalIgnoreCase))
+                {
+                    var corp = DevTokens.MintCorporate(signingKey: app.Configuration["Auth:DevSigningKey"]);
+                    return Results.Ok(new DevTokenResponse(corp, null, null));
+                }
+
+                // Franchisee (operator) login: unchanged — exchange a franchisee
+                // selection for a tenant-scoped token.
+                if (string.IsNullOrWhiteSpace(req.FranchiseeId))
+                    return Results.BadRequest("Provide either role=corporate or a franchiseeId.");
+
                 var f = await db.Franchisees.FirstOrDefaultAsync(x => x.Id == req.FranchiseeId);
                 if (f is null) return Results.NotFound("Unknown franchisee.");
                 var token = DevTokens.Mint(f.Id, f.BrandId,

@@ -179,10 +179,12 @@ public record SlotDto(int Id, int TerritoryId, string TerritoryName, DateTime St
 public record BookRequest(int SlotId, string CustomerName, string Service);
 public record AppointmentDto(int Id, int TerritoryId, DateTime StartUtc, string CustomerName, string Service, int DepositCents, bool DepositPaid);
 public record DepositRequest(int AmountCents);
-// Dev-only: exchange a franchisee selection for a signed token (stands in for a
-// B2C / Entra login during the demo). Gated to the Development environment.
-public record DevTokenRequest(string FranchiseeId);
-public record DevTokenResponse(string Token, string FranchiseeId, string BrandId);
+// Dev-only: exchange a franchisee selection OR a corporate role for a signed token
+// (stands in for a B2C / Entra login during the demo). Gated to the Development
+// environment. Backward compatible: existing callers send {"franchiseeId":"…"};
+// the corporate executive login sends {"role":"corporate"} (no tenant).
+public record DevTokenRequest(string? FranchiseeId = null, string? Role = null);
+public record DevTokenResponse(string Token, string? FranchiseeId, string? BrandId);
 // NPS pipeline: post-service survey response and its dashboard-facing read shape.
 public record NpsRequest(int Score, string? Comment);
 public record NpsSurveyDto(int Id, int AppointmentId, int TerritoryId, int Score, string Comment, DateTime RespondedAt);

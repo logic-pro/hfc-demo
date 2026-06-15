@@ -9,6 +9,17 @@ public static class DashboardEndpoints
 {
     public static void MapDashboard(this WebApplication app)
     {
+        // ── AUTH (feat/corporate-role) ──────────────────────────────────────────
+        // These were OPEN: with no token the scope resolver defaulted to the
+        // corporate lens (DashboardScope.ScopeFor), so an anonymous caller read the
+        // whole portfolio. We now require a VERIFIED principal on every one:
+        //   • /corporate, /watchlist, /map  → "Corporate" role (franchisor-only).
+        //   • /territories, /{id}/health-score → authenticated; the franchisee lens
+        //     still hard-scopes a franchisee token to its OWN rows (D10 preserved),
+        //     anonymous is rejected before the scope is even resolved.
+        // The franchisee-scope filtering inside each handler is unchanged — this
+        // only closes the no-token bypass at the edge.
+
         // D6 — Corporate vital signs + brand comparison (pre-rolled).
         app.MapGet("/api/dashboard/corporate", (
             IDashboardReadModel rm, DashboardScopeHolder holder,
@@ -39,7 +50,7 @@ public static class DashboardEndpoints
                 roll.DataNotes.Select(n => new DataNoteDto(n.Severity, n.Message)).ToList());
 
             return Results.Ok(dto);
-        });
+        }).RequireAuthorization("Corporate");
 
         // D7 — Territory health score: composite + 4 sub-scores + drivers.
         app.MapGet("/api/territories/{id:int}/health-score", (
@@ -63,7 +74,7 @@ public static class DashboardEndpoints
                     d.Impact, d.Severity, d.ProvenanceType, d.AsOfDate, d.RefreshStatus)).ToList());
 
             return Results.Ok(dto);
-        });
+        }).RequireAuthorization();   // authenticated; franchisee lens scopes to own (D10)
 
         // D8 — Watchlist flags (scoped + filterable).
         app.MapGet("/api/dashboard/watchlist", (
@@ -89,7 +100,7 @@ public static class DashboardEndpoints
                 .ToList();
 
             return Results.Ok(new WatchlistDto(items, items.Count));
-        });
+        }).RequireAuthorization("Corporate");
 
         // Map dots for the territory-health map (D12). Read-only projection:
         // dimension lat/lng + the PRE-COMPUTED composite score (no recompute).
@@ -112,7 +123,7 @@ public static class DashboardEndpoints
                 .ToList();
 
             return Results.Ok(new MapDto(items, items.Count));
-        });
+        }).RequireAuthorization("Corporate");
 
         // D9 — Territory registry (paged + filterable).
         app.MapGet("/api/territories", (
@@ -139,7 +150,7 @@ public static class DashboardEndpoints
                 .ToList();
 
             return Results.Ok(new TerritoryPageDto(items, p, size, filtered.Count));
-        });
+        }).RequireAuthorization();   // authenticated; franchisee lens scopes to own (D10)
     }
 
     private static int SeverityRank(string severity) =>

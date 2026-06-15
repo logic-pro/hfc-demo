@@ -14,6 +14,10 @@ code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
 # Mint a token for a franchisee (dev login stand-in).
 tok() { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
           -d "{\"franchiseeId\":\"$1\"}" | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])"; }
+# Mint a CORPORATE (franchisor) token — role-based, no tenant. Backs the executive
+# dashboard read-down now that the corporate endpoints are auth-gated.
+corptok() { curl -s -X POST "$B/api/dev/token" -H 'Content-Type: application/json' \
+          -d '{"role":"corporate"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])"; }
 
 echo "Smoke-testing $B"
 
@@ -58,31 +62,46 @@ chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer
 seen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/appointments" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$seen" "0" "other franchisee sees 0 of budget-blinds-irvine's appointments"
 
-# ── Dashboard API (D6–D9 + v1.1 map): RBAC scope is now sourced from the token
-# claim, not a header. Anonymous = the zero-config corporate lens (sees all);
-# a franchisee token is hard-scoped to its own territories (fail-closed). ───────
+# ── Dashboard API (D6–D9 + v1.1 map): RBAC scope is sourced from the token claim,
+# never a header. The franchisor read-down is now AUTH-GATED (feat/corporate-role):
+#   • no token  -> 401 (the old anonymous corporate-lens bypass is closed)
+#   • corporate role token -> the corporate lens (sees all)
+#   • franchisee token -> hard-scoped to its own territories (fail-closed) ────────
 jget() { python3 -c "import sys,json;d=json.load(sys.stdin);print(d$1)"; }
 
-# 1) corporate vital signs — anonymous resolves to the corporate lens
-sl=$(curl -s "$B/api/dashboard/corporate" | jget "['scope']['scopeLevel']")
-chk "$sl" "corporate" "dashboard/corporate: anonymous -> corporate lens"
+CORP=$(corptok)
+
+# 0) HOLE CLOSED: every franchisor read-down endpoint rejects an anonymous caller.
+chk "$(code "$B/api/dashboard/corporate")" "401" "corporate: no token -> 401 (anon bypass closed)"
+chk "$(code "$B/api/dashboard/watchlist")" "401" "watchlist: no token -> 401"
+chk "$(code "$B/api/dashboard/map")"       "401" "map: no token -> 401"
+chk "$(code "$B/api/territories")"          "401" "territories: no token -> 401"
+chk "$(code "$B/api/territories/1/health-score")" "401" "health-score: no token -> 401"
+
+# 1) corporate vital signs — a corporate-role token resolves to the corporate lens
+sl=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/corporate" | jget "['scope']['scopeLevel']")
+chk "$sl" "corporate" "dashboard/corporate: corporate token -> corporate lens"
 
 # 2) territory registry — corporate sees all 24 territories
-tc=$(curl -s "$B/api/territories" | jget "['totalCount']")
+tc=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | jget "['totalCount']")
 chk "$tc" "24" "territories: corporate sees all 24"
 
 # 3) health-score — present for a known territory
-chk "$(code "$B/api/territories/1/health-score")" "200" "health-score: territory 1 -> 200"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories/1/health-score")" "200" "health-score: territory 1 -> 200"
 
 # 4) watchlist — returns the pre-computed flag rows
-chk "$(code "$B/api/dashboard/watchlist")" "200" "watchlist -> 200"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/dashboard/watchlist")" "200" "watchlist -> 200"
 
 # 5) map (v1.1, additive) — dot per territory, corporate sees all 24
-mc=$(curl -s "$B/api/dashboard/map" | jget "['totalCount']")
+mc=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/map" | jget "['totalCount']")
 chk "$mc" "24" "map: corporate sees all 24 dots"
 
+# a franchisee token cannot reach the corporate-only watchlist/map -> 403
+chk "$(code -H "Authorization: Bearer $TU" "$B/api/dashboard/watchlist")" "403" "watchlist: franchisee -> 403 (corporate-only)"
+chk "$(code -H "Authorization: Bearer $TU" "$B/api/dashboard/map")"       "403" "map: franchisee -> 403 (corporate-only)"
+
 # unknown-id fail-closed: a non-existent territory -> 404 (never another's row)
-chk "$(code "$B/api/territories/9999/health-score")" "404" "health-score: unknown territory -> 404"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories/9999/health-score")" "404" "health-score: unknown territory -> 404"
 
 # RBAC boundary — a franchisee token is scoped from the CLAIM (not a header):
 # A booking-only operational franchisee (budget-blinds-irvine) owns NO dashboard
