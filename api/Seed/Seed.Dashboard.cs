@@ -1,82 +1,10 @@
-using System.Text;
-
 namespace HfcDemo;
 
-// ── D1 seed — the believable, deliberately dramatic demo world ───────────────
-// Seeds the data SPINE on main's two-axis tenancy (franchisee = isolation key,
-// brand = grouping):
-//   • Dashboard plane  → 8 catalog brands (3 the dashboard demo set across the 3
-//                        archetypes), 2 regions, 24 territories with real-ish
-//                        coords + a tenure spread, ~18 months of monthly history.
-//                        Each dashboard territory is operated by a named FRANCHISEE
-//                        (the data controller) — multi-unit operators surface as
-//                        one franchisee across several territories.
-//   • Operational plane → main's per-brand irvine/tustin franchisees (the booking
-//                        + tenancy-isolation demo). Preserved verbatim so the
-//                        franchisee-isolation tests still pass.
-//
-// History is laid down as INPUTS only:
-//   • measured plane  → real Slot/Appointment rows (RecomputeRollup derives
-//                        jobs_completed / slot_fill_rate / no_show_rate from them)
-//   • reported plane  → one MonthlyReport row per (territory, period) holding the
-//                        seeded financials + NPS + ratings (labeled Illustrative)
-// Scores, roll-ups and watchlist flags are NOT seeded — they are derived in
-// RecomputeRollup so there is a single computation path (demo now / real later).
-//
-// The spread is engineered, not random: 4 clear stars, a healthy middle, and 4
-// red at-risk territories each red for a DIFFERENT explainable reason so the
-// watchlist and drivers tell real stories:
-//   • Atlanta North   — collapsing NPS (customer)
-//   • Miami-Dade      — revenue deterioration (growth/financial)
-//   • Raleigh-Durham  — no-show spike (measured/ops)
-//   • Richmond        — royalty-late → pending_financial_reporting (compliance)
-public static class Seed
+// Dashboard plane — named franchisees (data controllers), 49 territories with a
+// tenure spread and ~18 months of measured + reported history. The metric
+// trajectories (including the four red stories) live here.
+public static partial class Seed
 {
-    // Latest fully-reported period is May 2026 (the current June cycle hasn't
-    // reported yet — that's what makes the royalty-late story land). 18 months.
-    public const int LatestPeriodId = 202605;
-    private const int Months = 18;
-
-    // Id ranges are partitioned so dashboard + operational rows never collide:
-    //   territory  1..24   dashboard      | 5001.. operational (irvine/tustin)
-    //   slot       1..      dashboard      | 800000.. operational
-    private const int OperationalTerritoryBase = 5001;
-    private const int OperationalSlotBase = 800_000;
-
-    // ── Brand catalog (all 8 kept so existing booking demo still works) ───────
-    // Num = numeric dashboard id. The 3 dashboard brands carry an archetype +
-    // royalty rate; the other 5 stay catalog-only (no archetype, no dashboard data).
-    private static readonly (string Id, string Name, string Tagline, int Num, string Archetype, double Royalty)[] Brands =
-    {
-        ("budget-blinds",   "Budget Blinds",         "Custom window coverings, in-home.", 1, "project_installation", 0.05),
-        ("two-maids",       "Two Maids",             "Residential cleaning.",             2, "recurring_service",    0.06),
-        ("lightspeed",      "Lightspeed Restoration","Water, fire & mold restoration.",   3, "emergency_response",   0.08),
-        ("tailored-closet", "The Tailored Closet",   "Custom closets & storage.",         4, "project_installation", 0.05),
-        ("premier-garage",  "PremierGarage",         "Garage cabinets, floors & storage.",5, "project_installation", 0.05),
-        ("kitchen-tuneup",  "Kitchen Tune-Up",       "Cabinet refacing & redooring.",     6, "project_installation", 0.06),
-        ("bath-tuneup",     "Bath Tune-Up",          "One-day bath updates.",             7, "project_installation", 0.06),
-        ("aussie-pet",      "Aussie Pet Mobile",     "Mobile pet grooming.",              8, "recurring_service",    0.07),
-    };
-
-    private static readonly (int Id, string Name)[] Regions = { (1, "West"), (2, "East") };
-
-    // Per-brand realistic figures (illustrative). Measured capacity (jobs/mo) and
-    // reported ticket/gross live on different planes ON PURPOSE — they are not
-    // forced to multiply out; the dashboard shows them as separate, separately-
-    // labeled tiles. `GrossBase` is a healthy-territory monthly gross.
-    private record BrandEcon(int Capacity, double TicketUsd, double GrossBase, string Service);
-    private static readonly Dictionary<string, BrandEcon> Econ = new()
-    {
-        ["budget-blinds"] = new(16, 2600, 95_000, "Window covering install"),
-        ["two-maids"]     = new(26,  260, 48_000, "Recurring home cleaning"),
-        ["lightspeed"]    = new(16, 4500, 80_000, "Water/fire/mold mitigation"),
-        ["tailored-closet"]= new(14, 3200, 88_000, "Custom closet install"),
-        ["premier-garage"] = new(12, 4800, 92_000, "Garage cabinet & floor install"),
-        ["kitchen-tuneup"] = new(18, 1900, 64_000, "Cabinet refacing"),
-        ["bath-tuneup"]    = new(20, 1400, 52_000, "One-day bath update"),
-        ["aussie-pet"]     = new(30,   95, 28_000, "Mobile pet grooming"),
-    };
-
     // tenure → open date (anchored so the band is realistic at the latest period)
     private static DateTime OpenFor(string tenure) => tenure switch
     {
@@ -162,41 +90,6 @@ public static class Seed
         new(48,"aussie-pet","Austin South",            "Austin, TX",     2,30.20,-97.79, "ramping",   "Lone Star Pet Grooming",     "average",""),
         new(49,"aussie-pet","Charlotte North",         "Huntersville, NC",2,35.41,-80.84,"established","Carolina Mobile Pets",       "soft",   ""),
     };
-
-    public static void Run(AppDb db)
-    {
-        db.Database.EnsureCreated();
-        if (db.Brands.Any()) return;     // already seeded (idempotent)
-
-        // Bulk insert is large; turn off change detection for speed and re-enable.
-        db.ChangeTracker.AutoDetectChangesEnabled = false;
-        try
-        {
-            SeedBrands(db);
-            SeedRegions(db);
-            var operators = SeedDashboardFranchisees(db);     // operator name -> (slug, num)
-            SeedDashboardTerritories(db, operators);
-            SeedOperationalFranchisees(db);                   // irvine/tustin per brand (tenancy/booking)
-            db.SaveChanges();
-        }
-        finally
-        {
-            db.ChangeTracker.AutoDetectChangesEnabled = true;
-        }
-    }
-
-    private static void SeedBrands(AppDb db)
-    {
-        foreach (var (id, name, tagline, num, arch, royalty) in Brands)
-            db.Brands.Add(new Brand { Id = id, Name = name, Tagline = tagline,
-                Num = num, Archetype = arch, RoyaltyRate = royalty });
-    }
-
-    private static void SeedRegions(AppDb db)
-    {
-        foreach (var (id, name) in Regions)
-            db.Regions.Add(new Region { Id = id, Name = name });
-    }
 
     // Dashboard franchisees (the data controllers). De-duplicated by name so
     // multi-unit operators (e.g. Peachtree Home Services Group runs Tampa +
@@ -473,67 +366,5 @@ public static class Seed
         var start = latestStart.AddMonths(-(Months - 1 - i));
         var end = start.AddMonths(1).AddDays(-1);
         return (start.Year * 100 + start.Month, start, end);
-    }
-
-    // Operational plane (main's model): every brand gets an irvine + tustin
-    // FRANCHISEE — same brand, two franchisees, fully isolated — each with a
-    // territory and four open future slots. This backs the booking demo and the
-    // franchisee-isolation tests (budget-blinds-irvine must not see -tustin).
-    // These franchisees are NOT in the dashboard set (RegionId null, Num 0).
-    private static readonly (string Region, string City, string Slug)[] OperationalRegions =
-    {
-        ("Irvine", "Irvine, CA", "irvine"),
-        ("Tustin", "Tustin, CA", "tustin"),
-    };
-
-    private static void SeedOperationalFranchisees(AppDb db)
-    {
-        var baseDay = DateTime.UtcNow.Date.AddHours(9);
-        int territoryId = OperationalTerritoryBase;
-        int slotId = OperationalSlotBase;
-        foreach (var (brandId, brandName, _, _, _, _) in Brands)
-        {
-            foreach (var (region, city, slug) in OperationalRegions)
-            {
-                var franchiseeId = $"{brandId}-{slug}";
-                db.Franchisees.Add(new Franchisee
-                {
-                    Id = franchiseeId, BrandId = brandId,
-                    Name = $"{brandName} — {region}", Region = region, Num = 0,
-                });
-
-                var te = new Territory
-                {
-                    Id = territoryId++, FranchiseeId = franchiseeId, BrandId = brandId,
-                    Name = $"{city} Crew", City = city, Status = "open",
-                    // RegionId null → excluded from the dashboard read model.
-                };
-                db.Territories.Add(te);
-
-                for (int d = 0; d < 2; d++)
-                    for (int h = 0; h < 2; h++)
-                        db.Slots.Add(new Slot
-                        {
-                            Id = slotId++, FranchiseeId = franchiseeId, BrandId = brandId,
-                            TerritoryId = te.Id,
-                            StartUtc = baseDay.AddDays(d).AddHours(h * 3),
-                            IsBooked = false, Version = 0,
-                        });
-            }
-        }
-    }
-
-    // Lowercase, hyphenate non-alphanumerics, trim — "Pacific Shade Partners LLC"
-    // → "pacific-shade-partners-llc". Operator names are distinct, so are slugs.
-    private static string Slugify(string s)
-    {
-        var sb = new StringBuilder(s.Length);
-        bool lastDash = false;
-        foreach (char c in s.ToLowerInvariant())
-        {
-            if (char.IsLetterOrDigit(c)) { sb.Append(c); lastDash = false; }
-            else if (!lastDash) { sb.Append('-'); lastDash = true; }
-        }
-        return sb.ToString().Trim('-');
     }
 }
