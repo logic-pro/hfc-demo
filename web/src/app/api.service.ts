@@ -23,9 +23,10 @@ export class ApiService {
   regions(): Observable<RegionRef[]> {
     return this.http.get<RegionRef[]>(`${this.base}/api/regions`);
   }
-  // Login stand-ins (B2C/Entra). Each mints a token whose scope claim the server
-  // authorizes by. The franchisee mint resolves the tenant; the corporate scopes
-  // carry network/brand/region in the claim.
+  // Login stand-ins (B2C/Entra). Each mints a token whose role/scope claim the
+  // server authorizes by. The franchisee mint resolves the tenant; the corporate
+  // roles carry network/brand/region in the claim. The mint takes `role` — the
+  // CEO sends role:'corporate' (network), brand/region send their tier + id.
   token(franchiseeId: string): Observable<DevTokenResponse> {
     return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { franchiseeId });
   }
@@ -33,10 +34,10 @@ export class ApiService {
     return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { role: 'corporate' });
   }
   brandToken(brandId: number): Observable<DevTokenResponse> {
-    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { scope: 'brand', brandId });
+    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { role: 'brand', brandId });
   }
   regionToken(regionId: number): Observable<DevTokenResponse> {
-    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { scope: 'region', regionId });
+    return this.http.post<DevTokenResponse>(`${this.base}/api/dev/token`, { role: 'region', regionId });
   }
   slots(): Observable<Slot[]> {
     return this.http.get<Slot[]>(`${this.base}/api/slots`);
