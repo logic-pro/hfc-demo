@@ -72,7 +72,9 @@ esac
 # 4. Build the Angular SPA (same-origin: it will be served BY the API) and copy
 #    it into the API's wwwroot, so one App Service serves both SPA and API.
 echo "Building SPA (same-origin) + bundling into the API..."
-echo "window.__API_BASE__='';" > "$ROOT/web/public/api-base.js"
+# Same-origin API base + LIVE executive dashboard (else it renders fixtures, ignoring
+# the real seeded/scoped data — 3 fixture brands incl. a non-seeded "Mister Sparky").
+{ echo "window.__API_BASE__='';"; echo "window.__DASHBOARD_LIVE__=true;"; } > "$ROOT/web/public/api-base.js"
 (cd "$ROOT/web" && npm ci && npx ng build --configuration production)
 rm -rf "$ROOT/api/wwwroot" && mkdir -p "$ROOT/api/wwwroot"
 cp -r "$ROOT/web/dist/web/browser/." "$ROOT/api/wwwroot/"
