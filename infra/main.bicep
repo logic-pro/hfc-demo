@@ -30,9 +30,31 @@ param sqlAadAdminObjectId string = ''
 @description('Entra display name / UPN for the SQL admin (only used when deploySql=true).')
 param sqlAadAdminLogin string = ''
 
+@description('App Service plan SKU for the API. F1=Free (cold-starts after ~20min idle; Always On NOT supported). B1+ = paid but supports Always On / no cold start.')
+param apiPlanSku string = 'F1'
+
 var suffix = uniqueString(resourceGroup().id)
 var sqlServerName = '${namePrefix}-sql-${suffix}'
 var sqlDbName = 'hfc'
+
+// Map a plan SKU name to its tier, and decide Always-On eligibility.
+// Always On is only valid on Basic (B1) and above — Azure REJECTS alwaysOn=true
+// on Free (F1) / Shared (D1), so we must gate it on the tier.
+var planTierMap = {
+  F1: 'Free'
+  D1: 'Shared'
+  B1: 'Basic'
+  B2: 'Basic'
+  B3: 'Basic'
+  S1: 'Standard'
+  S2: 'Standard'
+  S3: 'Standard'
+  P0v3: 'PremiumV3'
+  P1v3: 'PremiumV3'
+  P2v3: 'PremiumV3'
+}
+var apiPlanTier = contains(planTierMap, apiPlanSku) ? planTierMap[apiPlanSku] : 'Basic'
+var apiAlwaysOn = apiPlanTier != 'Free' && apiPlanTier != 'Shared'
 
 // ── Observability (Q: logs vs metrics vs traces — App Insights ties them) ────
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -58,7 +80,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: '${namePrefix}-plan'
   location: location
-  sku: { name: 'F1', tier: 'Free' } // bump to B1 for always-on / no cold start
+  sku: { name: apiPlanSku, tier: apiPlanTier } // default F1/Free; deploy with apiPlanSku=B1 for Always On / no cold start
   kind: 'linux'
   properties: { reserved: true }
 }
@@ -74,6 +96,9 @@ resource api 'Microsoft.Web/sites@2023-12-01' = {
       linuxFxVersion: 'DOTNETCORE|9.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
+      // Keep the app resident so the first hit after idle doesn't cold-start (503/timeout).
+      // Auto-true only on Basic+ — Azure rejects this on Free/Shared.
+      alwaysOn: apiAlwaysOn
       appSettings: [
         { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsights.properties.ConnectionString }
         // Demo runs in Development so the built-in dev-login (no external IdP) works.
