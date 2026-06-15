@@ -37,7 +37,7 @@ jobs:
       - name: Test
         run: dotnet test tests/HfcDemo.Tests.csproj -c Release --nologo
 
-      # --- Web: Angular AOT production build ---
+      # --- Web: Angular build gate ---
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -45,11 +45,27 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
 
-      - name: Install & build SPA (AOT)
+      # The SPA is the surface most likely to regress, so every PR builds it and a
+      # red build fails the check. Dev configuration on purpose: the prod build
+      # inlines Google Fonts over the network and would flake if Fonts is
+      # unreachable on a runner. The optimized/prod build is still exercised by
+      # screenshots.yml on push to main (and again by post-deploy-e2e on the live
+      # deploy), so prod-only build errors still get caught before users do.
+      - name: Build SPA (dev config — fails the PR on a red build)
         working-directory: web
         run: |
           npm ci
-          npm run build
+          npx ng build --configuration development
+
+      # Format report (NON-BLOCKING): prettier rules live in web/package.json but
+      # nothing was running them. continue-on-error surfaces drift in the PR checks
+      # without blocking merges; once the tree is verified clean, drop the flag to
+      # make formatting a hard gate. Pinned to prettier 3 for deterministic output.
+      - name: Web format check (prettier · non-blocking)
+        if: always()
+        working-directory: web
+        continue-on-error: true
+        run: npx --yes prettier@3 --check "src/**/*.{ts,html,css,json}"
 
       # --- Smoke: boot the API and assert its guarantees end-to-end ---
       # ASPNETCORE_ENVIRONMENT=Development is required: the /api/dev/token mint
