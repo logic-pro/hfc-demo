@@ -60,9 +60,6 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
       </div>
     }
   `,
-  // Re-assert slate heading colour over the global dark-dashboard \`h1..h4\` rule
-  // (near-white --ink-0) that would otherwise ghost this title on the light panel.
-  styles: [`h2 { color: #0f172a; }`], // slate-900
   host: { '(document:keydown.escape)': 'onEsc()' },
 })
 export class DetailDrawerComponent {

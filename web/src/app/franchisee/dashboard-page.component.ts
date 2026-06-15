@@ -155,12 +155,6 @@ interface DashboardVm {
         (close)="closeDrawer()" />
     </div>
   `,
-  // The global stylesheet sets a near-white heading colour (--ink-0) for the dark
-  // executive dashboard via an unlayered \`h1,h2,h3,h4\` rule, which outranks Tailwind's
-  // layered \`.text-slate-*\` utilities and ghosts this light-canvas heading. Re-assert
-  // the colour with component-scoped (emulated-encapsulation) specificity. Out-of-lane
-  // styles.css owns the offending rule — this is the in-lane, scoped correction.
-  styles: [`h1 { color: #020617; }`], // slate-950
 })
 export class DashboardPageComponent {
   private api = inject(DashboardApiService);
