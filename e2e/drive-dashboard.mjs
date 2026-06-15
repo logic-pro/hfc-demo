@@ -1,73 +1,99 @@
 #!/usr/bin/env node
 // drive-dashboard.mjs — driver + screenshotter for the EXECUTIVE command center
-// (/corporate) reached as the NETWORK-scope persona (HFC CEO).
+// (/corporate), driving TWO corporate personas to prove RBAC scope narrows in the
+// real UI (not just at the API — that's drive-rbac.mjs):
 //
-// Since #25 the corporate read-down is auth-gated (anonymous -> 401) and since
-// #26 login is a 4-tier persona picker at /login. So this driver now signs in as
-// the Franchisor HQ persona, lands on the command center, and asserts the NETWORK
-// scope is visible: the hero KPIs render real numbers and "Active Territories"
-// shows the whole network (24). drive-rbac.mjs proves the scope SHRINKS for
-// narrower personas; here we pin the top of that hierarchy through the real UI.
+//   • NETWORK persona (HFC CEO)  -> the whole network; every brand in the
+//     Brand Comparison table; Active Territories at the network total.
+//   • BRAND persona (Budget Blinds President) -> the SAME command center re-scoped
+//     server-side: Active Territories shrinks to that brand's slice (< network).
 //
-// Flow:
-//   1. /login -> click the "HFC CEO" persona (Franchisor HQ tier) -> /corporate
-//   2. assert the command center + hero-8 KPI tiles render WITH NUMBERS
-//   3. assert the network scope is visible (eyebrow names the network; Active
-//      Territories == 24 — the whole network, not a slice)
-//   4. screenshot desktop + mobile; exit non-zero on any console/page error
+// Since #25 the read-down is auth-gated and since #26 login is the /login persona
+// picker. Territory counts are asserted as FLOORS / relative comparisons, never
+// brittle exacts — the seed catalog grows as lanes add data.
+//
+// Flow: /login (CEO) -> command center -> assert KPIs + 8 brands + capture network
+//       territory count; sign out -> /login (Brand) -> command center -> assert the
+//       same metric SHRANK. Screenshots for each scope. Non-zero on any error.
 //
 // Usage: node e2e/drive-dashboard.mjs [unused] [outDir]   (WEB_URL/BASE from env)
 
-import { launch, shotter, resolveBase, outDir, gotoReady, loginPersona } from "./_helpers.mjs";
+import { launch, shotter, resolveBase, outDir, loginPersona } from "./_helpers.mjs";
 
 const { web, api } = resolveBase();
 const dir = outDir(3);
 const HERO = 'section[aria-label="Network vital signs"]';
 const TILES = `${HERO} ec-kpi-tile`;
 const NUMERIC = `${HERO} ec-kpi-tile .tile-value.tnum`;
-const NETWORK_TERRITORIES = 24; // seeded network total (smoke-api pins the same)
+const BRAND_ROWS = "ec-brand-table table.bt tbody tr";
+const NETWORK_FLOOR = 24; // documented minimum network size (smoke-api pins the same)
+
+// Read the "Active Territories" hero tile's rendered number (count-up settled).
+const activeTerritories = async (page) => {
+  const tile = page.locator(TILES, { hasText: "Active Territories" }).first();
+  const txt = (await tile.locator(".tile-value").innerText().catch(() => "")).trim();
+  return { n: parseInt(txt.replace(/[^0-9]/g, ""), 10), txt };
+};
 
 const { browser, page, errors } = await launch({ width: 1280, height: 900, api });
 const shot = shotter(page, dir);
 
-try {
-  if (api) console.log(`API base override: ${api}`);
-  // 1. sign in as the network-scope persona (HFC CEO) -> command center
-  const who = await loginPersona(page, web, { tier: "Franchisor HQ", name: "HFC CEO" });
-  console.log(`signed in as "${who}" (network scope)`);
+const waitCommandCenter = async () => {
   await page.waitForSelector("h1:has-text('Network Operations Command Center')", { timeout: 15000 });
-
-  // 2. hero tiles must render data, not skeletons (skeletons are .tile.skeleton;
-  //    real data renders <ec-kpi-tile>).
   await page.waitForSelector(TILES, { timeout: 20000 });
   await page.waitForSelector(NUMERIC, { timeout: 15000 });
   await page.waitForTimeout(800); // count-up + sparklines settle
-  const tileCount = await page.locator(TILES).count();
+};
+
+try {
+  if (api) console.log(`API base override: ${api}`);
+
+  // ── NETWORK persona ──────────────────────────────────────────────────────
+  const ceo = await loginPersona(page, web, { tier: "Franchisor HQ", name: "HFC CEO" });
+  console.log(`signed in as "${ceo}" (network scope)`);
+  await waitCommandCenter();
   const numericCount = await page.locator(NUMERIC).count();
-  console.log(`command center: ${tileCount} KPI tiles, ${numericCount} with numbers`);
+  console.log(`command center: ${await page.locator(TILES).count()} KPI tiles, ${numericCount} with numbers`);
   if (!numericCount) throw new Error("hero KPIs rendered but none show a number — blank read-model?");
 
-  // 3. network scope is VISIBLE: the eyebrow names the network scope, and Active
-  //    Territories shows the whole network (the top of the RBAC hierarchy).
   const eyebrow = (await page.locator(".dash-head .eyebrow").first().innerText().catch(() => "")).trim();
   console.log(`scope eyebrow: "${eyebrow}"`);
   if (!/network/i.test(eyebrow)) throw new Error(`network scope not reflected in eyebrow: "${eyebrow}"`);
 
-  const terrTile = page.locator(`${TILES}`, { hasText: "Active Territories" }).first();
-  const terrText = (await terrTile.locator(".tile-value").innerText().catch(() => "")).trim();
-  const terr = parseInt(terrText.replace(/[^0-9]/g, ""), 10);
-  console.log(`Active Territories (network): ${terr}`);
-  if (terr !== NETWORK_TERRITORIES) {
-    throw new Error(`network scope should see all ${NETWORK_TERRITORIES} territories, saw ${terr} ("${terrText}")`);
-  }
+  const net = await activeTerritories(page);
+  console.log(`Active Territories (network): ${net.n}`);
+  if (!(net.n >= NETWORK_FLOOR)) throw new Error(`network should see the whole network (>= ${NETWORK_FLOOR}), saw ${net.n} ("${net.txt}")`);
 
-  // 4. screenshots
+  // every brand appears in the Executive brand comparison
+  await page.waitForSelector(BRAND_ROWS, { timeout: 10000 });
+  const brandRows = await page.locator(BRAND_ROWS).count();
+  console.log(`brand comparison rows: ${brandRows}`);
+  if (!(brandRows >= 8)) throw new Error(`expected all 8 brands in the comparison, saw ${brandRows}`);
+
   await shot("dashboard-1-desktop.png");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
   await shot("dashboard-3-mobile.png");
+  await page.setViewportSize({ width: 1280, height: 900 });
 
-  console.log(`\nSaved screenshots to ${dir}/: dashboard-1-desktop.png, dashboard-3-mobile.png`);
+  // ── BRAND persona: same surface, re-scoped → fewer territories ────────────
+  await page.locator("button.signout").click();
+  await page.waitForSelector(".login .chip", { timeout: 15000 });
+  const pres = await loginPersona(page, web, { tier: "Brand", name: "Budget Blinds" });
+  console.log(`\nsigned in as "${pres}" (brand scope)`);
+  await waitCommandCenter();
+  const brandEyebrow = (await page.locator(".dash-head .eyebrow").first().innerText().catch(() => "")).trim();
+  console.log(`scope eyebrow: "${brandEyebrow}"`);
+
+  const brand = await activeTerritories(page);
+  console.log(`Active Territories (brand): ${brand.n}`);
+  if (!(brand.n >= 1 && brand.n < net.n)) {
+    throw new Error(`brand scope should narrow (1..<${net.n}), saw ${brand.n} ("${brand.txt}")`);
+  }
+  console.log(`RBAC scope narrows in the UI: network ${net.n} -> brand ${brand.n}`);
+  await shot("dashboard-4-brand-scope.png");
+
+  console.log(`\nSaved screenshots to ${dir}/: dashboard-1-desktop.png, dashboard-3-mobile.png, dashboard-4-brand-scope.png`);
   if (errors.length) { console.error("console errors:", errors); process.exitCode = 2; }
 } catch (e) {
   await shot("dashboard-error.png").catch(() => {});
