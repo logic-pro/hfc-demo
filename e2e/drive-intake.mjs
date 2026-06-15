@@ -1,28 +1,27 @@
 #!/usr/bin/env node
-// drive-intake.mjs — driver + screenshotter for Slice B (AI-assisted intake),
-// which now lives on the Scheduling page (`/booking`).
+// drive-intake.mjs — driver + screenshotter for Slice B (AI-assisted intake) on
+// the Scheduling page (/booking), reached as a FRANCHISEE-scope persona.
 //
-// The OLD version waited for a `.chip` brand picker on the LANDING page and a
-// `.intake textarea` there — both moved when the landing became the Executive
-// command center. Now intake is tenant-scoped: you sign in as a franchisee
-// (a `.chip` on the Scheduling page mints a token), and the intake panel appears.
+// Since #26, /booking is behind the franchisee guard: sign in via the /login
+// persona picker first, then the booking page opens already tenant-scoped (the
+// in-page chip picker reflects the signed-in franchisee) and the intake panel is
+// live. The OLD driver waited for a `.chip` brand picker on a public landing page
+// that no longer exists.
 //
 // Flow:
-//   1. shell -> Scheduling -> click a franchisee chip (mints a scoped token)
+//   1. /login -> Franchisee persona -> /dashboard, then nav to Scheduling
 //   2. type a free-text request, "Draft with AI" -> reviewable extracted draft
-//   3. screenshot the typed draft (the Slice B assertion: fields were extracted)
+//   3. screenshot the typed draft (asserts the Service field was extracted)
 //   4. best-effort: "Use this -> book a slot" -> book the first open slot
-//      (best-effort because live slot inventory can run out across CI runs; the
-//       draft is the hard assertion, booking is a bonus screenshot)
 //   5. exit non-zero on any console/page error
 //
-// Usage: node e2e/drive-intake.mjs [franchiseeLabel] [outDir]  (WEB_URL/BASE from env)
+// Usage: node e2e/drive-intake.mjs [franchiseeName] [outDir]  (WEB_URL/BASE from env)
 
-import { launch, shotter, resolveBase, outDir, arg, gotoReady } from "./_helpers.mjs";
+import { launch, shotter, resolveBase, outDir, arg, loginPersona } from "./_helpers.mjs";
 
 const { web, api } = resolveBase();
 const dir = outDir(3);
-const label = arg(2, ""); // "" -> first chip (any franchisee can run intake)
+const franchiseeName = arg(2, "Budget Blinds");
 
 const REQUEST =
   "Hi, this is Dana in Tustin — my water heater burst overnight and flooded " +
@@ -32,17 +31,21 @@ const { browser, page, errors } = await launch({ width: 1100, height: 950, api }
 const shot = shotter(page, dir);
 
 try {
-  // 1. Scheduling surface, then sign in as a franchisee (chip -> /api/dev/token).
-  await gotoReady(page, web, "nav.nav");
   if (api) console.log(`API base override: ${api}`);
+  // 1. sign in as a franchisee, then go to the Scheduling surface
+  const who = await loginPersona(page, web, { tier: "Franchisee", name: franchiseeName });
+  console.log(`signed in as "${who}" (franchisee scope)`);
+  await page.waitForSelector("h1:has-text('Operations Dashboard')", { timeout: 15000 });
   await page.getByRole("link", { name: "Scheduling" }).click();
-  await page.waitForSelector(".chip", { timeout: 20000 });
-  console.log(`scheduling surface; franchisee chips: ${await page.locator(".chip").count()}`);
-
-  await page.locator(".chip", { hasText: label }).first().click();
-  await page.waitForSelector(".context", { timeout: 10000 });
-  await page.waitForSelector(".intake textarea", { timeout: 10000 });
-  console.log(`signed in${label ? ` as "${label}"` : " (first franchisee)"}`);
+  // Already tenant-scoped from login, so the intake panel renders without a
+  // second pick; if it lags, nudge it by clicking the active franchisee chip.
+  try {
+    await page.waitForSelector(".intake textarea", { timeout: 8000 });
+  } catch {
+    await page.locator(".chip").first().click();
+    await page.waitForSelector(".intake textarea", { timeout: 8000 });
+  }
+  console.log("scheduling surface ready (intake panel live)");
 
   // 2. free-text -> AI/heuristic draft
   await page.locator(".intake textarea").fill(REQUEST);
