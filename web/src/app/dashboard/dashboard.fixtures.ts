@@ -119,6 +119,7 @@ export function buildTerritoryList(): TerritoryListResponse {
     lat: s.lat,
     lng: s.lng,
     compositeScore: s.composite,
+    scoreStatus: s.financial === null ? 'pending_financial_reporting' : 'complete',
   }));
   return { items, page: 1, pageSize: 50, totalCount: items.length };
 }

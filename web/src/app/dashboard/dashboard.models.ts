@@ -31,9 +31,13 @@ export interface TerritoryListItem {
   archetype: Archetype;
   status: 'open' | 'sold' | 'available';
   // lat/long are part of the registry (CONTRACT §1 D1 / D9) so the map is alive.
+  // compositeScore + scoreStatus are the PRE-COMPUTED health projection (§2 v1.4),
+  // so the map (D12) and distribution (D13) bucket on real scores. They flow via the
+  // typed http.get<TerritoryListResponse> — no explicit field mapping in the service.
   lat: number;
   lng: number;
   compositeScore: number;
+  scoreStatus: ScoreStatus;
 }
 
 export interface TerritoryListResponse {
