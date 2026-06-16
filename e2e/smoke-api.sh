@@ -64,6 +64,18 @@ chk "$amt" "5000" "deposit retried with same key does not double-charge"
 # missing idempotency key -> 400
 chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"amountCents":5000}')" "400" "deposit without Idempotency-Key -> 400"
 
+# ── input-validation hardening (fix/api-validation-v2): write-side guards ──────
+# deposit amount must be >= 1: a 0 / negative / omitted amount is a 400 (never a
+# persisted depositCents:-500, depositPaid:true). Uses a fresh key so it isn't an
+# idempotent replay of the settled deposit above.
+chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer $BB" -H 'Idempotency-Key: neg-deposit-1' -H 'Content-Type: application/json' -d '{"amountCents":0}')" "400" "deposit amountCents=0 -> 400"
+chk "$(code -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer $BB" -H 'Idempotency-Key: neg-deposit-2' -H 'Content-Type: application/json' -d '{"amountCents":-500}')" "400" "deposit amountCents=-500 -> 400"
+
+# booking missing required field (no customerName) -> 400, BEFORE the slot lookup
+# (never a 404/409, never an empty-name appointment on an open slot).
+NSID=$(curl -s -H "Authorization: Bearer $BB" "$B/api/slots" | python3 -c "import sys,json;d=json.load(sys.stdin);print([s['id'] for s in d if not s['isBooked']][0])")
+chk "$(code -X POST "$B/api/appointments" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d "{\"slotId\":$NSID,\"service\":\"t\"}")" "400" "booking missing customerName -> 400"
+
 # cross-franchisee isolation: another franchisee cannot see this appointment
 seen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/appointments" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$seen" "0" "other franchisee sees 0 of budget-blinds-irvine's appointments"
@@ -167,6 +179,10 @@ bsl=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/dashboard/corporate" | jg
 chk "$bsl" "brand" "brand corporate roll-up: scopeLevel == brand"
 bvs=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/dashboard/corporate" | python3 -c "import sys,json;d=json.load(sys.stdin);print(int(next(v['value'] for v in d['vitalSigns'] if v['metricKey']=='active_territories')))")
 chk "$bvs" "$BRD" "brand roll-up vital signs are scoped (active_territories=$BRD, not network=$NET)"
+# NPS: an OMITTED score is a 400 (required), not a silent 0/10. The null check runs
+# before the appointment lookup/conflict, so a missing score is rejected first.
+chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"comment":"no score"}')" "400" "NPS missing score -> 400"
+
 # NPS: record a post-service response for budget-blinds-irvine's appointment -> 201
 chk "$(code -X POST "$B/api/appointments/$AID/nps" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d '{"score":9,"comment":"great"}')" "201" "record NPS response -> 201"
 
@@ -178,5 +194,24 @@ chk "$score" "9" "NPS feed returns the recorded score"
 # (budget-blinds-tustin) cannot read budget-blinds-irvine's NPS responses
 nseen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/nps" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
 chk "$nseen" "0" "other franchisee sees 0 of budget-blinds-irvine's NPS responses"
+
+# ── input-validation hardening (fix/api-validation-v2): read-side param bounds ──
+# operator ?period= : a known token is fine; an unknown/undocumented token
+# (GARBAGE, and LTM — NOT in the WTD|MTD|QTD|YTD contract) is a 400, not a silent
+# fall-back to MTD. /api/dashboard is the operator (franchisee) endpoint.
+chk "$(code -H "Authorization: Bearer $BB" "$B/api/dashboard?period=MTD")"     "200" "operator period=MTD -> 200 (valid token still works)"
+chk "$(code -H "Authorization: Bearer $BB" "$B/api/dashboard?period=GARBAGE")" "400" "operator period=GARBAGE -> 400"
+chk "$(code -H "Authorization: Bearer $BB" "$B/api/dashboard?period=LTM")"     "400" "operator period=LTM -> 400 (not in WTD|MTD|QTD|YTD)"
+
+# territories pagination: documented bounds are page>=1, pageSize in 1..100. An
+# out-of-range pageSize=150 is a 400 (no longer a silent clamp to 200); a valid
+# in-range request still succeeds.
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories?pageSize=50")"  "200" "territories pageSize=50 -> 200 (valid)"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories?pageSize=150")" "400" "territories pageSize=150 -> 400 (over 100)"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories?page=0")"       "400" "territories page=0 -> 400"
+
+# corporate ?period= : an unknown periodId is a 404 (consistent with how
+# health-score rejects a non-latest period) — never a misleading echoed label.
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/dashboard/corporate?period=999999")" "404" "corporate unknown period=999999 -> 404"
 
 echo "All $pass checks passed."

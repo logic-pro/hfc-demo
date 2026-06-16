@@ -200,5 +200,7 @@ public record DevTokenRequest(
 // web can label the session; the corporate tiers omit the operator tenant ids.
 public record DevTokenResponse(string Token, string? FranchiseeId, string? BrandId, string? Scope = null);
 // NPS pipeline: post-service survey response and its dashboard-facing read shape.
-public record NpsRequest(int Score, string? Comment);
+// Score is nullable so an OMITTED score is detectable (and rejected) rather than
+// silently binding to 0 — a missing required field, not a real "0/10" rating.
+public record NpsRequest(int? Score, string? Comment);
 public record NpsSurveyDto(int Id, int AppointmentId, int TerritoryId, int Score, string Comment, DateTime RespondedAt);

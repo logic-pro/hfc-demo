@@ -16,6 +16,13 @@ public static class NpsEndpoints
         app.MapPost("/api/appointments/{id:int}/nps",
             async (int id, NpsRequest req, AppDb db) =>
         {
+            // score is REQUIRED: an omitted score now binds to null (not 0), so we
+            // reject it instead of silently recording a 0/10. Then keep the range check.
+            if (req.Score is null)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["score"] = new[] { "score is required." },
+                });
             if (req.Score is < 0 or > 10)
                 return Results.Problem(statusCode: 400, title: "NPS score must be 0–10.");
 
@@ -36,7 +43,7 @@ public static class NpsEndpoints
                 BrandId = appt.BrandId,             // grouping (denormalized)
                 TerritoryId = appt.TerritoryId,     // denormalize for territory-level aggregation
                 AppointmentId = appt.Id,
-                Score = req.Score,
+                Score = req.Score.Value,
                 Comment = req.Comment ?? "",
                 RespondedAt = DateTime.UtcNow,
             };

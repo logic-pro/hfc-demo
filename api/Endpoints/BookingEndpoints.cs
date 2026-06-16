@@ -37,6 +37,16 @@ public static class BookingEndpoints
         // tenant filter, so a franchisee can only book its own slots.
         app.MapPost("/api/appointments", async (BookRequest req, AppDb db, TenantContext t) =>
         {
+            // Validate required fields BEFORE the slot lookup so missing input is a
+            // clean 400 — never a misleading 404/409, and never an appointment with
+            // an empty customer name on an otherwise-open slot.
+            var errors = new Dictionary<string, string[]>();
+            if (string.IsNullOrWhiteSpace(req.CustomerName))
+                errors["customerName"] = new[] { "customerName is required." };
+            if (string.IsNullOrWhiteSpace(req.Service))
+                errors["service"] = new[] { "service is required." };
+            if (errors.Count > 0) return Results.ValidationProblem(errors);
+
             var slot = await db.Slots.FirstOrDefaultAsync(s => s.Id == req.SlotId);
             if (slot is null) return Results.NotFound();   // not found OR not this tenant's
             if (slot.IsBooked) return Results.Conflict("Slot already booked.");
@@ -78,6 +88,15 @@ public static class BookingEndpoints
         {
             if (!http.Headers.TryGetValue("Idempotency-Key", out var key) || string.IsNullOrWhiteSpace(key))
                 return Results.Problem(statusCode: 400, title: "Missing Idempotency-Key header.");
+
+            // Validate the amount BEFORE touching any state: a deposit must be a
+            // positive amount. Reject missing/0/negative so we never persist a
+            // settled-but-nonsensical deposit (e.g. depositCents:-500, depositPaid:true).
+            if (req.AmountCents < 1)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["amountCents"] = new[] { "amountCents is required and must be at least 1." },
+                });
 
             var appt = await db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
             if (appt is null) return Results.NotFound();   // not found OR not this tenant's
