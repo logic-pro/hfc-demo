@@ -12,11 +12,24 @@ const FILTER_LABEL: Record<ActionStageFilter, string> = {
 
 /** The "what needs follow-up" list. Rows are pre-ranked by the read model;
  *  clicking a row opens the detail drawer. Severity shown as a text-labelled
- *  pill (never colour-only). Horizontal scroll on mobile, identity column first. */
+ *  pill (never colour-only). Horizontal scroll on mobile, identity column first.
+ *  Header tint + zebra rows (token-driven) so the wide rows are easy to track. */
 @Component({
   selector: 'app-action-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [`
+    /* header band */
+    thead th { background: var(--surface-2); }
+    /* zebra rows — subtle in both themes */
+    tbody tr { background: var(--surface); }
+    tbody tr:nth-child(even) { background: var(--surface-2); }
+    tbody tr:hover, tbody tr:focus-within { background: var(--surface-3); }
+    /* the frozen identity column copies its row's background, so the stripe + hover
+       show through AND horizontally-scrolled cells never bleed under it */
+    .sticky-col { position: sticky; left: 0; background: inherit; }
+    thead .sticky-col { background: var(--surface-2); }
+  `],
   template: `
     <div class="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--surface)] shadow-[var(--shadow-card)]">
       <header class="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--line)] px-5 py-4">
@@ -40,20 +53,19 @@ const FILTER_LABEL: Record<ActionStageFilter, string> = {
         <div class="overflow-x-auto">
           <table class="w-full min-w-[640px] text-left text-sm">
             <thead class="text-xs uppercase tracking-wide text-[var(--ink-faint)]">
-              <tr class="border-b border-[var(--line)]">
-                <th class="sticky left-0 bg-[var(--surface)] px-5 py-2.5 font-medium">Customer</th>
-                <th class="px-3 py-2.5 font-medium">Territory</th>
-                <th class="px-3 py-2.5 font-medium">When</th>
-                <th class="px-3 py-2.5 font-medium">Stage</th>
-                <th class="px-3 py-2.5 font-medium">Deposit</th>
-                <th class="px-3 py-2.5 font-medium">Recommended action</th>
+              <tr class="border-b-2 border-[var(--line)]">
+                <th class="sticky-col px-5 py-3 font-semibold">Customer</th>
+                <th class="px-3 py-3 font-semibold">Territory</th>
+                <th class="px-3 py-3 font-semibold">When</th>
+                <th class="px-3 py-3 font-semibold">Stage</th>
+                <th class="px-3 py-3 font-semibold">Deposit</th>
+                <th class="px-3 py-3 font-semibold">Recommended action</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[var(--line)]">
+            <tbody>
               @for (row of rows(); track row.appointmentId) {
-                <tr (click)="selectRow.emit(row)"
-                    class="cursor-pointer transition hover:bg-[var(--surface-2)] focus-within:bg-[var(--surface-2)]">
-                  <td class="sticky left-0 bg-[var(--surface)] px-5 py-3 font-medium text-[var(--ink-strong)]">
+                <tr (click)="selectRow.emit(row)" class="cursor-pointer transition">
+                  <td class="sticky-col px-5 py-3 font-medium text-[var(--ink-strong)]">
                     {{ row.customerName }}
                   </td>
                   <td class="px-3 py-3 text-[var(--ink-muted)]">{{ row.territoryName }}</td>
