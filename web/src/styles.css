@@ -11,7 +11,7 @@
   --bg-2: #101626;          /* raised card */
   --bg-3: #161E32;          /* card hover / nested */
   --surface-line: #1E2942;  /* hairline borders */
-  --surface-glow: rgba(95, 227, 192, 0.06); /* inner accent glow */
+  --surface-glow: rgba(249, 156, 28, 0.06); /* inner accent glow — HFC amber */
 
   /* ── Ink ───────────────────────────────────────────────────────────────── */
   --ink-0: #F4F7FF;         /* hero numbers */
@@ -27,10 +27,14 @@
   --health-good:     #5FE3C0;
   --health-strong:   #2FD3A6;
 
-  /* ── Signal accent (the one "look here" color) ─────────────────────────── */
-  --accent:       #5FE3C0;
-  --accent-dim:   #2FD3A6;
-  --accent-glow:  rgba(95, 227, 192, 0.16);
+  /* ── Signal accent (the one "look here" color) — HFC brand highlight ─────
+     Amber #f99c1c + orange #e7602a (the HFC palette) replace the original teal,
+     so chrome highlights (active states, KPI accent bars, links, glows, sparklines,
+     map glow) read as HFC. The navy canvas, cool ink, and the semantic health ramp
+     (red→green) are deliberately unchanged — color still only ever means health. */
+  --accent:       #f99c1c;   /* HFC amber */
+  --accent-dim:   #e7602a;   /* HFC orange */
+  --accent-glow:  rgba(249, 156, 28, 0.16);
 
   /* ── Provenance language (D16) ─────────────────────────────────────────── */
   --prov-measured: #5FE3C0;  /* we measured it */
@@ -58,8 +62,8 @@ html, body {
   padding: 0;
   height: 100%;
   background:
-    radial-gradient(1200px 600px at 12% -8%, rgba(95,227,192,.05), transparent 60%),
-    radial-gradient(1000px 500px at 100% 0%, rgba(127,168,255,.05), transparent 55%),
+    radial-gradient(1200px 600px at 12% -8%, rgba(249,156,28,.06), transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%, rgba(231,96,42,.05), transparent 55%),
     var(--bg-1);
   color: var(--ink-1);
   font-family: var(--font-ui);
