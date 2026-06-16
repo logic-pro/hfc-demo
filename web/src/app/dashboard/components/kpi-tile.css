@@ -51,11 +51,11 @@
   cursor: default;
 }
 .prov-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); }
-.prov[data-prov='measured'] { color: var(--prov-measured); border-color: rgba(95,227,192,.32); background: rgba(95,227,192,.06); }
+.prov[data-prov='measured'] { color: var(--prov-measured); border-color: color-mix(in srgb, var(--prov-measured) 32%, transparent); background: color-mix(in srgb, var(--prov-measured) 8%, transparent); }
 .prov[data-prov='measured'] .prov-dot { background: var(--prov-measured); }
-.prov[data-prov='reported'] { color: var(--prov-reported); border-color: rgba(127,168,255,.32); background: rgba(127,168,255,.06); }
+.prov[data-prov='reported'] { color: var(--prov-reported); border-color: color-mix(in srgb, var(--prov-reported) 32%, transparent); background: color-mix(in srgb, var(--prov-reported) 8%, transparent); }
 .prov[data-prov='reported'] .prov-dot { background: var(--prov-reported); }
-.prov[data-prov='seeded'] { color: var(--prov-seeded); border-color: rgba(185,140,255,.30); background: rgba(185,140,255,.06); }
+.prov[data-prov='seeded'] { color: var(--prov-seeded); border-color: color-mix(in srgb, var(--prov-seeded) 30%, transparent); background: color-mix(in srgb, var(--prov-seeded) 8%, transparent); }
 .prov[data-prov='seeded'] .prov-dot { background: var(--prov-seeded); }
 
 /* ── The hero number ─────────────────────────────────────────────────────── */

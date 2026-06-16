@@ -10,7 +10,7 @@ import { PeriodType } from '../dashboard.models';
   template: `
     <div class="flex flex-wrap items-center gap-3">
       <!-- period segmented control -->
-      <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5" role="group" aria-label="Period">
+      <div class="inline-flex rounded-lg border border-[var(--line)] bg-[var(--surface)] p-0.5" role="group" aria-label="Period">
         @for (p of periods; track p.value) {
           <button
             type="button"
@@ -18,17 +18,17 @@ import { PeriodType } from '../dashboard.models';
             [attr.aria-pressed]="period() === p.value"
             class="rounded-md px-3 py-1.5 text-sm font-medium transition"
             [class]="period() === p.value
-              ? 'bg-slate-900 text-white'
-              : 'text-slate-600 hover:bg-slate-100'"
+              ? 'bg-[var(--accent)] text-[var(--accent-ink)]'
+              : 'text-[var(--ink-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--ink)]'"
           >{{ p.label }}</button>
         }
       </div>
 
       <!-- territory select -->
-      <label class="inline-flex items-center gap-2 text-sm text-slate-600">
+      <label class="inline-flex items-center gap-2 text-sm text-[var(--ink-muted)]">
         <span class="sr-only sm:not-sr-only">Territory</span>
         <select
-          class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          class="rounded-lg border border-[var(--line)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--ink)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           [value]="territoryId() ?? ''"
           (change)="onTerritory($event)"
         >

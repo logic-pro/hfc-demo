@@ -41,9 +41,9 @@ import { RouterLink } from '@angular/router';
         margin: 10px 0 14px;
         font-family: var(--font-display, system-ui, sans-serif);
         font-size: 2rem;
-        color: var(--ink-0, #f4f7ff);
+        color: var(--ink-strong, #1c1916);
       }
-      a { color: var(--accent, #5fe3c0); }
+      a { color: var(--accent, #e7602a); }
     `,
   ],
 })

@@ -45,14 +45,14 @@
   transition: all var(--t-fast) var(--ease);
 }
 .risk-toggle .risk-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--health-critical); }
-.risk-toggle.on { color: #ffd2da; background: rgba(255,84,112,.1); border-color: rgba(255,84,112,.4); }
+.risk-toggle.on { color: var(--health-critical); background: color-mix(in srgb, var(--health-critical) 12%, transparent); border-color: color-mix(in srgb, var(--health-critical) 42%, transparent); }
 
 /* ── Stage / SVG ─────────────────────────────────────────────────────────── */
 .map-stage { position: relative; width: 100%; margin-top: 14px; }
 .map-svg { width: 100%; height: 100%; display: block; overflow: visible; }
 
 .us-outline {
-  fill: rgba(127,168,255,.025);
+  fill: color-mix(in srgb, var(--ink-2) 3%, transparent);
   stroke: var(--surface-line);
   stroke-width: 1.1;
   stroke-linejoin: round;
@@ -117,7 +117,7 @@
 .leg { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-2); }
 .leg-dot { width: 9px; height: 9px; border-radius: 50%; }
 .leg-dot.pulse-leg { animation: leg-pulse 2.2s var(--ease) infinite; }
-@keyframes leg-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,84,112,.5);} 60% { box-shadow: 0 0 0 5px rgba(255,84,112,0);} }
+@keyframes leg-pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--health-critical) 50%, transparent);} 60% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--health-critical) 0%, transparent);} }
 .leg-note { margin-left: auto; font-size: 11px; color: var(--ink-3); }
 
 @media (max-width: 720px) {

@@ -12,8 +12,8 @@
   padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
 }
 .sum-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.sum-badge[data-sev='high'] { color: var(--health-critical); background: rgba(255,84,112,.1); }
-.sum-badge[data-sev='medium'] { color: var(--health-warning); background: rgba(255,159,69,.1); }
+.sum-badge[data-sev='high'] { color: var(--health-critical); background: color-mix(in srgb, var(--health-critical) 10%, transparent); }
+.sum-badge[data-sev='medium'] { color: var(--health-warning); background: color-mix(in srgb, var(--health-warning) 10%, transparent); }
 .sum-terr { font-size: 11.5px; color: var(--ink-3); }
 
 /* ── Brand scope chip (shared cross-filter) — clears back to portfolio ─────── */
@@ -54,8 +54,8 @@
   transition: background var(--t-fast) ease, border-color var(--t-fast) ease, transform var(--t-fast) ease;
 }
 .wl-row:hover, .wl-row:focus-visible { background: var(--bg-3); transform: translateX(2px); }
-.wl-row[data-sev='high']:hover, .wl-row[data-sev='high']:focus-visible { border-color: rgba(255,84,112,.4); }
-.wl-row[data-sev='medium']:hover, .wl-row[data-sev='medium']:focus-visible { border-color: rgba(255,159,69,.36); }
+.wl-row[data-sev='high']:hover, .wl-row[data-sev='high']:focus-visible { border-color: color-mix(in srgb, var(--health-critical) 40%, transparent); }
+.wl-row[data-sev='medium']:hover, .wl-row[data-sev='medium']:focus-visible { border-color: color-mix(in srgb, var(--health-warning) 36%, transparent); }
 
 /* Severity rail — the urgency cue */
 .wl-rail { align-self: stretch; border-radius: 3px; }

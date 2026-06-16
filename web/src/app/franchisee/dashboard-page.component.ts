@@ -45,14 +45,15 @@ interface DashboardVm {
     DetailDrawerComponent, LoadingSkeletonComponent, ErrorPanelComponent,
   ],
   template: `
-    <div class="min-h-screen bg-slate-50">
-      <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
         <!-- header + filters -->
-        <header class="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <header class="flex flex-col gap-4 border-b border-[var(--line)] pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-slate-950">Operations Dashboard</h1>
-            <p class="mt-1 text-sm text-slate-500">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-text)]">Operator</p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink-strong)]">Operations Dashboard</h1>
+            <p class="mt-1.5 text-sm text-[var(--ink-muted)]">
               Where is my territory leaking bookings and deposits — and what needs follow-up today?
             </p>
           </div>
@@ -64,7 +65,7 @@ interface DashboardVm {
               (periodChange)="setPeriod($event)"
               (territoryChange)="setTerritory($event)" />
             @if (state().lastUpdated) {
-              <p class="text-xs text-slate-400">Updated {{ state().lastUpdated | date: 'shortTime' }}</p>
+              <p class="text-xs text-[var(--ink-faint)]">Updated {{ state().lastUpdated | date: 'shortTime' }}</p>
             }
           </div>
         </header>
@@ -127,9 +128,12 @@ interface DashboardVm {
 
         <!-- revenue-not-available honesty note -->
         @if (!state().loading && data(); as d) {
-          <p class="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
-            <span class="font-medium">Job revenue unavailable.</span> {{ d.response.revenue.reason }}
-            The “Deposit volume” tile shows deposits captured, not realized revenue.
+          <p class="mt-4 flex items-start gap-2 rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-soft)] px-4 py-2.5 text-sm text-[var(--ink)]">
+            <span aria-hidden="true" class="text-[var(--warning)]">⚠</span>
+            <span>
+              <span class="font-semibold text-[var(--ink-strong)]">Job revenue unavailable.</span> {{ d.response.revenue.reason }}
+              The “Deposit volume” tile shows deposits captured, not realized revenue.
+            </span>
           </p>
         }
 

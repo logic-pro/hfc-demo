@@ -6,11 +6,11 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
-      <h3 class="text-sm font-semibold text-red-900">{{ title() }}</h3>
-      <p class="mt-1 text-sm text-red-700">{{ message() }}</p>
+    <div class="rounded-xl border border-[var(--critical)]/40 bg-[var(--critical-soft)] p-4" role="alert">
+      <h3 class="text-sm font-semibold text-[var(--critical)]">{{ title() }}</h3>
+      <p class="mt-1 text-sm text-[var(--ink)]">{{ message() }}</p>
       <button type="button" (click)="retry.emit()"
-        class="mt-3 rounded-lg bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800">
+        class="mt-3 rounded-lg bg-[var(--accent-deep)] px-3 py-2 text-sm font-medium text-white transition hover:opacity-90">
         Retry
       </button>
     </div>

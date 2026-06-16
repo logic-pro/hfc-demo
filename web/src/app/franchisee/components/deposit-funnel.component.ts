@@ -16,16 +16,16 @@ import { formatCount, formatPercent } from '../utils/number-format.util';
     <div class="space-y-2">
       @for (s of flowStages(); track s.stage) {
         <button type="button" (click)="drill.emit(s.drillTo)"
-          class="w-full rounded-lg border border-slate-200 p-2.5 text-left transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+          class="w-full rounded-lg border border-[var(--line)] p-2.5 text-left transition hover:border-[var(--accent)] hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
           <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-slate-700">{{ s.stage }}</span>
-            <span class="tabular-nums text-slate-900">{{ count(s.count) }}</span>
+            <span class="font-medium text-[var(--ink)]">{{ s.stage }}</span>
+            <span class="tabular-nums text-[var(--ink-strong)]">{{ count(s.count) }}</span>
           </div>
-          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div class="h-full rounded-full bg-slate-700" [style.width.%]="widthPct(s.count)"></div>
+          <div class="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-3)]">
+            <div class="h-full rounded-full bg-[var(--accent)]" [style.width.%]="widthPct(s.count)"></div>
           </div>
           @if (s.conversionFromPrev !== null) {
-            <p class="mt-1 text-xs" [class]="s.conversionFromPrev < 0.7 ? 'text-red-600 font-medium' : 'text-slate-500'">
+            <p class="mt-1 text-xs" [class]="s.conversionFromPrev < 0.7 ? 'text-[var(--critical)] font-medium' : 'text-[var(--ink-muted)]'">
               {{ pct(s.conversionFromPrev) }} retained from previous
               @if (s.conversionFromPrev < 0.7) { · biggest leak }
             </p>
@@ -35,13 +35,13 @@ import { formatCount, formatPercent } from '../utils/number-format.util';
 
       <!-- leak branch -->
       @if (leak(); as lk) {
-        <div class="mt-3 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-2.5">
+        <div class="mt-3 flex items-center justify-between rounded-lg border border-[var(--critical)]/40 bg-[var(--critical-soft)] p-2.5">
           <div>
-            <p class="text-sm font-semibold text-red-900">⚠ {{ lk.stage }} (leak)</p>
-            <p class="text-xs text-red-700">Booked but expired without a deposit.</p>
+            <p class="text-sm font-semibold text-[var(--critical)]">⚠ {{ lk.stage }} (leak)</p>
+            <p class="text-xs text-[var(--ink-muted)]">Booked but expired without a deposit.</p>
           </div>
           <button type="button" (click)="drill.emit(lk.drillTo)"
-            class="rounded-md bg-red-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-800">
+            class="rounded-md bg-[var(--accent-deep)] px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90">
             {{ count(lk.count) }} to recover →
           </button>
         </div>

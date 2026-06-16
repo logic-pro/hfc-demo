@@ -36,8 +36,8 @@
 .bt-row:hover { background: rgba(255,255,255,.022); }
 .bt-row:focus-visible { background: rgba(255,255,255,.03); }
 .bt-row.sel { background: var(--accent-glow); }
-.bt-row.sel td { box-shadow: inset 0 0 0 9999px rgba(95,227,192,.04); }
-.bt-row.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 9999px rgba(95,227,192,.04); }
+.bt-row.sel td { box-shadow: inset 0 0 0 9999px var(--accent-soft); }
+.bt-row.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 9999px var(--accent-soft); }
 
 /* Rank */
 .c-rank { text-align: left; width: 30px; }
@@ -78,8 +78,8 @@
   font-weight: 600; font-size: 12.5px;
 }
 .flags[data-load='none'] { color: var(--ink-3); background: rgba(255,255,255,.03); }
-.flags[data-load='some'] { color: var(--health-warning); background: rgba(255,159,69,.12); }
-.flags[data-load='heavy'] { color: var(--health-critical); background: rgba(255,84,112,.14); }
+.flags[data-load='some'] { color: var(--health-warning); background: color-mix(in srgb, var(--health-warning) 12%, transparent); }
+.flags[data-load='heavy'] { color: var(--health-critical); background: color-mix(in srgb, var(--health-critical) 14%, transparent); }
 
 /* Top issue */
 .c-issue { text-align: left; }

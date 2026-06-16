@@ -13,45 +13,45 @@ import { formatCurrencyCents, formatDateTimeShort } from '../utils/number-format
   template: `
     @if (row(); as r) {
       <div class="fixed inset-0 z-40" role="dialog" aria-modal="true" aria-label="Appointment detail">
-        <div class="absolute inset-0 bg-slate-900/30" (click)="busy() || close.emit()"></div>
+        <div class="absolute inset-0 bg-black/50" (click)="busy() || close.emit()"></div>
 
-        <aside class="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-white shadow-xl">
-          <header class="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+        <aside class="absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-[var(--surface)] shadow-[var(--shadow-pop)]">
+          <header class="flex items-start justify-between border-b border-[var(--line)] px-5 py-4">
             <div>
-              <h2 class="text-lg font-semibold text-slate-900">{{ r.customerName }}</h2>
-              <p class="text-sm text-slate-500">Appointment #{{ r.appointmentId }} · {{ r.territoryName }}</p>
+              <h2 class="text-lg font-semibold text-[var(--ink-strong)]">{{ r.customerName }}</h2>
+              <p class="text-sm text-[var(--ink-muted)]">Appointment #{{ r.appointmentId }} · {{ r.territoryName }}</p>
             </div>
             <button type="button" (click)="close.emit()" aria-label="Close"
-              class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">✕</button>
+              class="rounded-lg p-1.5 text-[var(--ink-faint)] transition hover:bg-[var(--surface-2)] hover:text-[var(--ink)]">✕</button>
           </header>
 
           <div class="flex-1 space-y-5 overflow-y-auto px-5 py-5 text-sm">
             <dl class="grid grid-cols-2 gap-4">
-              <div><dt class="text-slate-500">Service</dt><dd class="mt-0.5 font-medium text-slate-900">{{ r.service }}</dd></div>
-              <div><dt class="text-slate-500">When</dt><dd class="mt-0.5 font-medium text-slate-900">{{ when(r.startUtc) }}</dd></div>
-              <div><dt class="text-slate-500">Workflow stage</dt><dd class="mt-0.5 font-medium text-slate-900">{{ r.stage }}</dd></div>
-              <div><dt class="text-slate-500">Deposit</dt><dd class="mt-0.5 font-medium text-slate-900">{{ r.depositPaid ? deposit(r.depositCents) : 'Unpaid' }}</dd></div>
+              <div><dt class="text-[var(--ink-muted)]">Service</dt><dd class="mt-0.5 font-medium text-[var(--ink-strong)]">{{ r.service }}</dd></div>
+              <div><dt class="text-[var(--ink-muted)]">When</dt><dd class="mt-0.5 font-medium text-[var(--ink-strong)]">{{ when(r.startUtc) }}</dd></div>
+              <div><dt class="text-[var(--ink-muted)]">Workflow stage</dt><dd class="mt-0.5 font-medium text-[var(--ink-strong)]">{{ r.stage }}</dd></div>
+              <div><dt class="text-[var(--ink-muted)]">Deposit</dt><dd class="mt-0.5 font-medium text-[var(--ink-strong)]">{{ r.depositPaid ? deposit(r.depositCents) : 'Unpaid' }}</dd></div>
             </dl>
 
-            <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
-              <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Recommended next action</p>
-              <p class="mt-1 text-slate-800">{{ r.recommendedAction }}</p>
+            <div class="rounded-lg border border-[var(--line)] bg-[var(--surface-2)] p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-[var(--accent-text)]">Recommended next action</p>
+              <p class="mt-1 text-[var(--ink)]">{{ r.recommendedAction }}</p>
             </div>
           </div>
 
-          <footer class="flex flex-col gap-2 border-t border-slate-100 px-5 py-4">
+          <footer class="flex flex-col gap-2 border-t border-[var(--line)] px-5 py-4">
             @if (error()) {
-              <p class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ error() }}</p>
+              <p class="rounded-lg bg-[var(--critical-soft)] px-3 py-2 text-sm text-[var(--critical)]" role="alert">{{ error() }}</p>
             }
             <div class="flex gap-2">
               @if (!r.depositPaid) {
                 <button type="button" (click)="sendDeposit.emit(r)" [disabled]="busy()"
-                  class="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+                  class="flex-1 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-ink)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">
                   {{ busy() ? 'Sending…' : 'Send deposit link' }}
                 </button>
               }
               <button type="button" (click)="close.emit()" [disabled]="busy()"
-                class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60">
+                class="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink-muted)] transition hover:border-[var(--accent)] hover:text-[var(--ink)] disabled:opacity-60">
                 Close
               </button>
             </div>

@@ -5,8 +5,25 @@
   <title>HFC Platform</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0B0F1A">
+  <meta name="theme-color" content="#1a1614">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- No-flash theme boot: set data-theme on <html> BEFORE first paint.
+       Priority: explicit user choice (localStorage) → OS prefers-color-scheme.
+       Leaving data-theme unset would also work (CSS @media handles OS default),
+       but setting it here lets matchMedia + the toggle share one source of truth. -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem('hfc-theme');
+        var theme = (stored === 'light' || stored === 'dark')
+          ? stored
+          : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
   <!-- Signature type pairing: Space Grotesk (tabular hero numbers) + Inter (UI).
        System fallbacks in styles.css keep it legible if fonts are unavailable. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

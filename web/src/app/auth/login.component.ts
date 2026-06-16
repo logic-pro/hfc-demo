@@ -75,42 +75,42 @@ interface PersonaGroup {
   `,
   styles: [
     `
-      :host { display: block; min-height: 100vh; background: #080b14; }
+      :host { display: block; min-height: 100vh; background: var(--bg); }
       .login {
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 2rem 1rem;
-        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-family: var(--font-ui, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
       }
       .card {
         width: 100%;
         max-width: 34rem;
-        background: #101626;
-        border: 1px solid #1e2942;
+        background: var(--surface);
+        border: 1px solid var(--line);
         border-radius: 16px;
         padding: 2rem;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        box-shadow: var(--shadow-pop);
       }
       .head { margin-bottom: 1.25rem; }
-      .mark { font-weight: 800; color: #fff; letter-spacing: -0.5px; font-size: 1.1rem; }
-      .mark span { font-weight: 400; opacity: 0.6; margin-left: 0.2rem; }
-      h1 { color: #f4f7ff; font-size: 1.6rem; margin: 0.75rem 0 0.25rem; }
-      .sub { color: #8a99b8; font-size: 0.9rem; margin: 0; }
+      .mark { font-weight: 800; color: var(--accent); letter-spacing: -0.5px; font-size: 1.1rem; }
+      .mark span { font-weight: 400; color: var(--ink-muted); margin-left: 0.2rem; }
+      h1 { color: var(--ink-strong); font-size: 1.6rem; margin: 0.75rem 0 0.25rem; }
+      .sub { color: var(--ink-muted); font-size: 0.9rem; margin: 0; }
       .error {
-        background: rgba(255, 99, 99, 0.12);
-        border: 1px solid rgba(255, 99, 99, 0.4);
-        color: #ffb4b4;
+        background: var(--critical-soft);
+        border: 1px solid var(--critical);
+        color: var(--critical);
         padding: 0.6rem 0.8rem;
         border-radius: 8px;
         font-size: 0.85rem;
         margin: 0 0 1rem;
       }
-      .muted { color: #5a6b8c; font-size: 0.9rem; }
+      .muted { color: var(--ink-faint); font-size: 0.9rem; }
       .tier { margin-bottom: 1.1rem; }
       .tier h2 {
-        color: #8a99b8;
+        color: var(--ink-muted);
         font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 0.08em;
@@ -119,7 +119,7 @@ interface PersonaGroup {
         align-items: baseline;
         gap: 0.5rem;
       }
-      .tier-hint { text-transform: none; letter-spacing: 0; color: #5a6b8c; font-size: 0.72rem; }
+      .tier-hint { text-transform: none; letter-spacing: 0; color: var(--ink-faint); font-size: 0.72rem; }
       .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
       .chip {
         display: flex;
@@ -127,18 +127,18 @@ interface PersonaGroup {
         gap: 0.1rem;
         text-align: left;
         min-width: 9rem;
-        background: #161e32;
-        border: 1px solid #1e2942;
+        background: var(--surface-2);
+        border: 1px solid var(--line);
         border-radius: 10px;
         padding: 0.55rem 0.8rem;
         cursor: pointer;
         transition: border-color 0.15s ease, background 0.15s ease;
       }
-      .chip:hover:not(:disabled) { border-color: #5fe3c0; background: #1a2540; }
+      .chip:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-3); }
       .chip:disabled { opacity: 0.5; cursor: default; }
-      .chip.working { border-color: #5fe3c0; }
-      .chip-name { color: #f4f7ff; font-size: 0.88rem; font-weight: 600; }
-      .chip-role { color: #5a6b8c; font-size: 0.74rem; }
+      .chip.working { border-color: var(--accent); }
+      .chip-name { color: var(--ink-strong); font-size: 0.88rem; font-weight: 600; }
+      .chip-role { color: var(--ink-faint); font-size: 0.74rem; }
     `,
   ],
 })

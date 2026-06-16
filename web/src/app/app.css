@@ -1,14 +1,16 @@
 :host {
-  --ink: #14202e;
-  --muted: #6b7a8d;
-  --line: #e3e8ef;
-  --accent: #1f6feb;
-  --accent-ink: #fff;
-  --ok: #1a7f4b;
+  /* Map the booking SPA's local palette onto the global HFC theme tokens so it
+     flips with light/dark like every other surface. Only the names that differ
+     from the global tokens are aliased; --accent / --accent-ink / --line are
+     inherited straight from :root (no self-referential redeclare). */
+  --ink: var(--ink-strong);
+  --muted: var(--ink-muted);
+  --ok: var(--good);
+  --panel: var(--surface);
   display: block;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--ink);
-  background: #f6f8fb;
+  font-family: var(--font-ui, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  color: var(--ink-strong);
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -17,32 +19,33 @@
   align-items: baseline;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  background: var(--ink);
-  color: #fff;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-strong);
 }
-.brandmark { margin: 0; font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; }
-.brandmark span { font-weight: 400; opacity: 0.7; margin-left: 0.25rem; }
-.tagline { color: #9fb3c8; font-size: 0.85rem; }
+.brandmark { margin: 0; font-weight: 800; font-size: 1.3rem; letter-spacing: -0.5px; color: var(--accent); }
+.brandmark span { font-weight: 400; color: var(--ink-muted); margin-left: 0.25rem; }
+.tagline { color: var(--ink-muted); font-size: 0.85rem; }
 
 main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 
 .picker .picker-label { display: block; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .brand-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
 .chip {
-  border: 1px solid var(--line); background: #fff; border-radius: 999px;
-  padding: 0.4rem 0.9rem; font-size: 0.9rem; cursor: pointer; transition: all 0.12s;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 0.4rem 0.9rem; font-size: 0.9rem; cursor: pointer; transition: all 0.12s; color: var(--ink);
 }
 .chip:hover { border-color: var(--accent); }
 .chip.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
 .banner { margin: 1rem 0; padding: 0.7rem 1rem; border-radius: 8px; font-size: 0.9rem; }
-.banner.error { background: #fdecec; color: #b3261e; }
-.banner.notice { background: #e8f3ec; color: var(--ok); }
+.banner.error { background: var(--critical-soft); color: var(--critical); }
+.banner.notice { background: var(--good-soft); color: var(--ok); }
 
 .context { margin: 1.25rem 0; }
 .context h2 { margin: 0; }
 .context p { margin: 0.2rem 0 0.75rem; color: var(--muted); }
-.cust input { padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; }
+.cust input { padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
 
 .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 @media (max-width: 700px) { .columns { grid-template-columns: 1fr; } }
@@ -50,7 +53,7 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 
 .card {
   display: flex; justify-content: space-between; align-items: center;
-  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   padding: 0.7rem 0.9rem; margin-bottom: 0.6rem;
 }
 .muted { color: var(--muted); font-size: 0.85rem; }
@@ -58,7 +61,7 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 
 /* ── AI-assisted intake ─────────────────────────────────────────────────── */
 .intake {
-  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
   padding: 1rem 1.1rem; margin: 1.25rem 0;
 }
 .intake-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
@@ -67,6 +70,7 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 .intake-row textarea {
   flex: 1; resize: vertical; font: inherit; font-size: 0.9rem;
   padding: 0.55rem 0.7rem; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
 }
 .intake-row textarea:focus { outline: none; border-color: var(--accent); }
 .intake-row .btn { white-space: nowrap; align-self: flex-start; }
@@ -77,9 +81,9 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
   font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 999px;
   letter-spacing: 0.3px;
 }
-.src-badge.ai { background: #e7f0ff; color: var(--accent); }
-.src-badge.heuristic { background: #fff4e5; color: #9a6700; }
-.banner.warn { background: #fff4e5; color: #9a6700; margin: 0.6rem 0; }
+.src-badge.ai { background: var(--accent-soft); color: var(--accent); }
+.src-badge.heuristic { background: var(--warning-soft); color: var(--warning); }
+.banner.warn { background: var(--warning-soft); color: var(--warning); margin: 0.6rem 0; }
 
 .fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.6rem 0.8rem; margin: 0.8rem 0; }
 @media (max-width: 700px) { .fields { grid-template-columns: 1fr; } }
@@ -88,14 +92,14 @@ main { max-width: 920px; margin: 0 auto; padding: 1.5rem; }
 .fields label span { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .fields input, .fields select {
   font: inherit; font-size: 0.9rem; padding: 0.4rem 0.55rem;
-  border: 1px solid var(--line); border-radius: 7px; background: #fff;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink);
 }
 .fields input:focus, .fields select:focus { outline: none; border-color: var(--accent); }
 .draft-actions { display: flex; gap: 0.6rem; }
 
 .btn {
-  border: 1px solid var(--line); background: #fff; border-radius: 7px;
-  padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 7px;
+  padding: 0.4rem 0.8rem; font-size: 0.85rem; cursor: pointer; color: var(--ink);
 }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }

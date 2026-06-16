@@ -9,14 +9,14 @@ import { DataQuality } from '../dashboard.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (quality() === 'measured') {
-      <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+      <span class="inline-flex items-center gap-1 rounded-full bg-[var(--neutral-soft)] px-2 py-0.5 text-xs font-medium text-[var(--ink-muted)]"
             title="Measured directly from operational data.">
-        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Measured
+        <span class="h-1.5 w-1.5 rounded-full bg-[var(--good)]"></span> Measured
       </span>
     } @else {
-      <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+      <span class="inline-flex items-center gap-1 rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-xs font-medium text-[var(--warning)]"
             title="Not captured in this system.">
-        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Unavailable
+        <span class="h-1.5 w-1.5 rounded-full bg-[var(--warning)]"></span> Unavailable
       </span>
     }
   `,

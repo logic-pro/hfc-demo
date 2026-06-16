@@ -57,7 +57,7 @@ import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@an
 })
 export class SparklineComponent {
   @Input() set data(v: number[]) { this._data.set(v ?? []); }
-  @Input() color = '#5FE3C0';
+  @Input() color = 'var(--accent)';
   @Input() w = 120;
   @Input() h = 34;
   @Input() strokeWidth = 1.75;

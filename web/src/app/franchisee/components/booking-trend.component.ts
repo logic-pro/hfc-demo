@@ -17,18 +17,18 @@ import { formatDayShort } from '../utils/number-format.util';
       <!-- bars: bookings -->
       @for (b of bars(); track b.date) {
         <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
-              rx="2" class="fill-slate-300" />
-        <text [attr.x]="b.cx" y="135" text-anchor="middle" class="fill-slate-400 text-[9px]">{{ b.label }}</text>
+              rx="2" class="fill-[var(--line-strong)]" />
+        <text [attr.x]="b.cx" y="135" text-anchor="middle" class="fill-[var(--ink-faint)] text-[9px]">{{ b.label }}</text>
       }
       <!-- line: filled slots -->
-      <polyline [attr.points]="linePoints()" fill="none" class="stroke-emerald-500" stroke-width="2" />
+      <polyline [attr.points]="linePoints()" fill="none" class="stroke-[var(--accent)]" stroke-width="2" />
       @for (p of linePointArr(); track p.date) {
-        <circle [attr.cx]="p.x" [attr.cy]="p.y" r="2.5" class="fill-emerald-500" />
+        <circle [attr.cx]="p.x" [attr.cy]="p.y" r="2.5" class="fill-[var(--accent)]" />
       }
     </svg>
-    <div class="mt-2 flex gap-4 text-xs text-slate-500">
-      <span class="inline-flex items-center gap-1"><span class="h-2 w-3 rounded-sm bg-slate-300"></span> Bookings</span>
-      <span class="inline-flex items-center gap-1"><span class="h-0.5 w-3 bg-emerald-500"></span> Filled slots</span>
+    <div class="mt-2 flex gap-4 text-xs text-[var(--ink-muted)]">
+      <span class="inline-flex items-center gap-1"><span class="h-2 w-3 rounded-sm bg-[var(--line-strong)]"></span> Bookings</span>
+      <span class="inline-flex items-center gap-1"><span class="h-0.5 w-3 bg-[var(--accent)]"></span> Filled slots</span>
     </div>
   `,
 })
