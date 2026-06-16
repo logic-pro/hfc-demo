@@ -60,6 +60,11 @@ public static partial class Seed
             SeedDashboardTerritories(db, operators);
             SeedOperationalFranchisees(db);                   // irvine/tustin per brand (tenancy/booking)
             db.SaveChanges();
+
+            // Appointments now have ids — attach real NPS surveys to a handful of
+            // them so those territories read MEASURED nps (ADR-20), then persist.
+            SeedDashboardNpsSurveys(db);
+            db.SaveChanges();
         }
         finally
         {

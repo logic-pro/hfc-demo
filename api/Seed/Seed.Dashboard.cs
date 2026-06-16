@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace HfcDemo;
 
 // Dashboard plane — named franchisees (data controllers), 49 territories with a
@@ -356,6 +358,60 @@ public static partial class Seed
             Growth: growth,
             GoogleRating: Math.Clamp(ratingV, 3.2, 5.0),
             Quote: Math.Clamp(quoteV, 0.10, 0.65));
+    }
+
+    // ── Measured NPS plane (ADR-20) ───────────────────────────────────────────
+    // Seed real NpsSurvey rows for a HANDFUL of dashboard territories spanning the
+    // three dashboard brands, so RecomputeRollup derives a MEASURED nps for them
+    // and the dashboard flips those from "Illustrative" to "Measured" — with no
+    // DTO change. Every OTHER territory has no survey rows and keeps its seeded
+    // (illustrative) value, so the provenance split is honest. Surveys are tied to
+    // real completed appointments (AppointmentId is uniquely indexed) and scored to
+    // match each territory's seeded tier, so health scores and the watchlist are
+    // unchanged — only the provenance label flips.
+    private static void SeedDashboardNpsSurveys(AppDb db)
+    {
+        // (territoryId, targetNps): non-at-risk territories, two per dashboard brand.
+        // Targets mirror each one's seeded latest NPS (star≈80, healthy≈58) and stay
+        // above the 50 watchlist line so the only NPS story remains Atlanta's collapse.
+        var measured = new[]
+        {
+            (Terr:  1, Target: 80), (Terr:  3, Target: 58),  // Budget Blinds: Orange County North, Denver Metro
+            (Terr:  9, Target: 80), (Terr: 13, Target: 58),  // Two Maids: San Diego Coast, Nashville
+            (Terr: 18, Target: 80), (Terr: 21, Target: 58),  // Lightspeed: Bay Area East, Charleston
+        };
+
+        foreach (var (terr, target) in measured)
+        {
+            // Cross-tenant read (the seed has no tenant context, like RecomputeRollup):
+            // a recent sample of real completed appointments to attach responses to.
+            var appts = db.Appointments.IgnoreQueryFilters()
+                .Where(a => a.TerritoryId == terr && a.Status == "completed")
+                .OrderByDescending(a => a.StartUtc)
+                .Take(20)
+                .ToList();
+            if (appts.Count == 0) continue;
+
+            // Deterministic 0–10 mix whose %promoters−%detractors ≈ target: a few
+            // detractors, enough promoters to clear the target, the rest passive.
+            int n = appts.Count;
+            int detr = (int)Math.Round(n * 0.08);
+            int prom = Math.Clamp((int)Math.Round(detr + target * n / 100.0), 0, n);
+            for (int k = 0; k < n; k++)
+            {
+                var a = appts[k];
+                int score = k < prom ? (k % 2 == 0 ? 10 : 9)   // promoter (9–10)
+                          : k < prom + detr ? 4 + (k % 3)       // detractor (4–6)
+                          : 7 + (k % 2);                        // passive (7–8)
+                db.NpsSurveys.Add(new NpsSurvey
+                {
+                    FranchiseeId = a.FranchiseeId, BrandId = a.BrandId,
+                    TerritoryId = a.TerritoryId, AppointmentId = a.Id,
+                    Score = score, Comment = "",
+                    RespondedAt = a.StartUtc.AddDays(1),
+                });
+            }
+        }
     }
 
     // period index 0..Months-1 → (periodId, start, end), ending at LatestPeriodId.
