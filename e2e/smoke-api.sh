@@ -114,6 +114,27 @@ chk "$(code -H "Authorization: Bearer $CORP" "$B/api/dashboard/watchlist")" "200
 mc=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/map" | jget "['totalCount']")
 chk "$([ "$mc" -ge 24 ] && echo ok || echo "$mc")" "ok" "map: corporate sees a dot per territory (>=24, got $mc)"
 
+# 5b) territory registry now CARRIES the map projection (CONTRACT §2 v1.4, additive):
+# every item has lat/lng + the pre-computed compositeScore, so the map (D12) renders
+# real markers and the distribution (D13) buckets on real scores instead of NaN. We
+# also assert the registry's lat/lng/composite are CONSISTENT with /api/dashboard/map
+# for the same territory (both project the SAME read model — no second source of truth).
+fields_ok=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+its=d['items']
+print(bool(its) and all('lat' in t and 'lng' in t and 'compositeScore' in t and 'scoreStatus' in t for t in its)
+      and any(t['lat']!=0 and t['lng']!=0 for t in its))")
+chk "$fields_ok" "True" "territories items carry real lat/lng/compositeScore/scoreStatus (map+distribution data)"
+consistent=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories?pageSize=100" -o /tmp/_terr.json; \
+  curl -s -H "Authorization: Bearer $CORP" "$B/api/dashboard/map" -o /tmp/_map.json; python3 -c "
+import json
+terr={t['territoryId']:t for t in json.load(open('/tmp/_terr.json'))['items']}
+mp  ={m['territoryId']:m for m in json.load(open('/tmp/_map.json'))['items']}
+print(all(abs(terr[i]['lat']-mp[i]['lat'])<1e-9 and abs(terr[i]['lng']-mp[i]['lng'])<1e-9
+          and terr[i]['compositeScore']==mp[i]['compositeScore'] for i in mp if i in terr))")
+chk "$consistent" "True" "territories lat/lng/composite consistent with /api/dashboard/map"
+
 # a franchisee token cannot reach the corporate-only watchlist/map -> 403
 chk "$(code -H "Authorization: Bearer $TU" "$B/api/dashboard/watchlist")" "403" "watchlist: franchisee -> 403 (corporate-only)"
 chk "$(code -H "Authorization: Bearer $TU" "$B/api/dashboard/map")"       "403" "map: franchisee -> 403 (corporate-only)"
@@ -166,6 +187,13 @@ chk "$([ "$NET" -gt "$REG" ] && [ "$REG" -gt 0 ] && echo ok || echo "net=$NET re
 # every territory a brand token sees is its own brand (no cross-brand bleed)
 allbb=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/territories" | python3 -c "import sys,json;d=json.load(sys.stdin);print(all(t['brandId']==$BNUM for t in d['items']))")
 chk "$allbb" "True" "brand token sees only its own brand's territories"
+# the map projection is scoped too: a brand token's (smaller) registry set still
+# carries real lat/lng/compositeScore for every item it is allowed to see.
+bfields=$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/territories" | python3 -c "
+import sys,json
+its=json.load(sys.stdin)['items']
+print(bool(its) and all('lat' in t and 'compositeScore' in t and t['brandId']==$BNUM for t in its))")
+chk "$bfields" "True" "brand-scoped registry items carry lat/lng/compositeScore (scoped subset)"
 # a brand token cannot read a territory in ANOTHER brand -> 403 (cross-brand isolation)
 OTHER=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/territories" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(t['territoryId'] for t in d['items'] if t['brandId']!=$BNUM))")
 chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/territories/$OTHER/health-score")" "403" "brand token cannot read another brand's territory -> 403"

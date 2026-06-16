@@ -161,9 +161,19 @@ public static class DashboardEndpoints
 
             var items = filtered
                 .Skip((p - 1) * size).Take(size)
-                .Select(t => new TerritoryListItemDto(
-                    t.TerritoryId, t.TerritoryName, t.BrandId, t.BrandName, t.RegionId, t.RegionName,
-                    t.FranchiseeName, t.OpenDate, t.TenureBand, t.Archetype, t.Status))
+                .Select(t =>
+                {
+                    // Project lat/lng + the PRE-COMPUTED composite the SAME way the
+                    // /api/dashboard/map handler does (read-model Score, no recompute),
+                    // so the map (D12) and distribution (D13) get real coordinates and
+                    // buckets instead of NaN-dropped markers. (CONTRACT §2 v1.4, additive.)
+                    var s = rm.Score(t.TerritoryId, rm.LatestPeriodId);
+                    int composite = s?.Composite ?? 0;
+                    return new TerritoryListItemDto(
+                        t.TerritoryId, t.TerritoryName, t.BrandId, t.BrandName, t.RegionId, t.RegionName,
+                        t.FranchiseeName, t.OpenDate, t.TenureBand, t.Archetype, t.Status,
+                        t.Lat, t.Lng, composite, s?.ScoreStatus ?? "unknown");
+                })
                 .ToList();
 
             return Results.Ok(new TerritoryPageDto(items, p, size, filtered.Count));

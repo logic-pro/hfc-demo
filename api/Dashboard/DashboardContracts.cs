@@ -141,7 +141,15 @@ public record TerritoryListItemDto(
     string OpenDate,
     string TenureBand,
     string Archetype,
-    string Status);
-// NOTE: lat/long intentionally NOT here — CONTRACT §2 territory item omits them.
-// The map (D12) needs them; that is a proposed v1→v1.1 CONTRACT bump, not a fork.
-// Read model already carries lat/lng (see TerritoryDim) ready for that bump.
+    string Status,
+    // CONTRACT §2 v1.4, additive: the registry item now carries lat/lng + the
+    // PRE-COMPUTED composite score and its status, so the territory-health map (D12)
+    // and the score distribution (D13) — both consuming GET /api/territories — render
+    // real markers/buckets instead of NaN-dropped circles. Appended at the end so the
+    // change is purely additive (existing fields byte-identical); mirrors the v1.1/v1.2/
+    // v1.3 precedents. Read model already carries lat/lng (TerritoryDim) and the
+    // composite (Score(...)); the handler projects them the SAME way /api/dashboard/map does.
+    double Lat,
+    double Lng,
+    int CompositeScore,
+    string ScoreStatus);
