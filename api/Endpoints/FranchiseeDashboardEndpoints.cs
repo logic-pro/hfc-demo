@@ -16,6 +16,14 @@ public static class FranchiseeDashboardEndpoints
         // franchisee (Slice A). No header check: RequireAuthorization fail-closes.
         app.MapGet("/api/dashboard", async (string? period, int? territoryId, AppDb db, TenantContext t) =>
         {
+            // Reject an unknown ?period= (e.g. GARBAGE, LTM) with 400 rather than
+            // silently falling back to MTD. Documented set: WTD|MTD|QTD|YTD.
+            if (!PeriodRange.IsValid(period))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["period"] = new[] { "period must be one of WTD, MTD, QTD, YTD." },
+                });
+
             var vm = await DashboardReadModel.BuildAsync(db, t, period ?? "MTD", territoryId, DateTime.UtcNow);
             return Results.Ok(vm);
         }).RequireAuthorization();

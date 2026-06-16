@@ -35,6 +35,12 @@ public static class DashboardEndpoints
                     title: "Corporate scope required for the corporate dashboard.");
 
             int periodId = period ?? rm.LatestPeriodId;
+            // Reject an unknown periodId instead of echoing a misleading
+            // {periodId:999999, label:"…"} while serving the latest data. Only the
+            // latest period is materialized — match how health-score (rm.Score)
+            // rejects a non-latest period: 404.
+            if (periodId != rm.LatestPeriodId)
+                return Results.NotFound();
             int window = trailingWindow ?? 12;
             var roll = rm.Corporate(scope, periodId, window, brandId, regionId);
 
@@ -131,8 +137,18 @@ public static class DashboardEndpoints
             IDashboardReadModel rm, DashboardScopeHolder holder,
             int? brandId, int? regionId, string? status, string? archetype, int? page, int? pageSize) =>
         {
-            int p = page is > 0 ? page.Value : 1;
-            int size = pageSize is > 0 and <= 200 ? pageSize.Value : 50;
+            // Enforce the documented bounds rather than silently clamping: page>=1
+            // and pageSize in 1..100. Out-of-range values (e.g. pageSize=150) are a
+            // 400, not a quietly-clamped 200. Omitted params keep their defaults.
+            var pageErrors = new Dictionary<string, string[]>();
+            if (page is not null && page < 1)
+                pageErrors["page"] = new[] { "page must be at least 1." };
+            if (pageSize is not null && (pageSize < 1 || pageSize > 100))
+                pageErrors["pageSize"] = new[] { "pageSize must be between 1 and 100." };
+            if (pageErrors.Count > 0) return Results.ValidationProblem(pageErrors);
+
+            int p = page ?? 1;
+            int size = pageSize ?? 50;
 
             var filtered = rm.Territories
                 .Where(t => holder.Scope.Allows(t.TerritoryId))                // scope first

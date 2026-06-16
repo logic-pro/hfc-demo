@@ -27,6 +27,15 @@ namespace HfcDemo;
 
 public static class PeriodRange
 {
+    // The documented operator period set (web/.../API-CONTRACT.md): WTD|MTD|QTD|YTD.
+    // LTM is NOT in the contract — it was silently falling back to MTD; it (and any
+    // other token) is now genuinely invalid and rejected by the endpoint with 400.
+    private static readonly HashSet<string> Valid =
+        new(StringComparer.OrdinalIgnoreCase) { "WTD", "MTD", "QTD", "YTD" };
+
+    public static bool IsValid(string? period) =>
+        period is null || Valid.Contains(period);
+
     public static (DateTime Start, DateTime End, string Label, DateTime PriorStart, DateTime PriorEnd)
         For(string period, DateTime now)
     {
