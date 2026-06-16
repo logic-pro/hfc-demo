@@ -24,10 +24,11 @@ import { launch, shotter, resolveBase, outDir, arg, loginPersona } from "./_help
 
 const { web, api } = resolveBase();
 const dir = outDir(3);
-// Dash-agnostic brand substring: live chip names use an em-dash ("Budget Blinds
-// — Irvine"). Matching the brand picks the seeded budget-blinds-irvine tenant
-// (where smoke-api books appointments) so the dashboard has data to render.
-const franchiseeName = arg(2, "Budget Blinds");
+// Pin a deterministic operator whose live read-model exercises the PR #38 fixes:
+// Carolina Light & Shade (a Budget Blinds operator) has bookings (dashboard
+// renders), measured-ZERO deposits (the empty-state path), and a POSITIVE
+// expired-abandoned delta (the ▲ direction-glyph fix). Overridable via argv[2].
+const franchiseeName = arg(2, "Carolina Light & Shade");
 const KPIS = 'section[aria-label="Key performance indicators"] button';
 
 const { browser, page, errors, benign } = await launch({ width: 1280, height: 900, api });
@@ -52,8 +53,12 @@ try {
   // empty-state markers, accent colour, whether a sparkline rendered.
   const cards = await page.$$eval('section[aria-label="Key performance indicators"] button', (btns) =>
     btns.map((b) => {
-      const chip = b.querySelector("span.rounded-full");
-      const glyph = chip?.querySelector('span[aria-hidden="true"]')?.textContent?.trim() ?? "";
+      // The delta chip is the rounded pill carrying the glyph + "+N%" label. NB:
+      // the status accent bar is ALSO .rounded-full, so disambiguate by .font-medium
+      // (the accent bar has none) — match it by its aria-hidden glyph child.
+      const glyphEl = b.querySelector("span.rounded-full.font-medium span[aria-hidden='true']");
+      const chip = glyphEl?.parentElement ?? null;
+      const glyph = glyphEl?.textContent?.trim() ?? "";
       return {
         label: (b.querySelector("p.font-medium") ?? b.querySelector("p"))?.textContent?.trim() ?? "",
         glyph,
@@ -69,36 +74,44 @@ try {
   // (1) Delta arrow direction agrees with the delta SIGN on every chip — the
   //     glyph (▲/▼) is derived from the same deltaPercent as the "+N%"/"−N%"
   //     label, so they can never disagree. ▲⟺"+", ▼⟺"−" (U+2212).
+  let chipsChecked = 0;
   for (const c of cards) {
     if (c.glyph !== "▲" && c.glyph !== "▼") continue; // empty / no-comparison tiles
+    chipsChecked++;
     const pos = c.deltaLabel.startsWith("+");
     const neg = c.deltaLabel.startsWith("−") || c.deltaLabel.startsWith("-");
     const agree = (c.glyph === "▲" && pos) || (c.glyph === "▼" && neg);
     if (!agree) throw new Error(`delta glyph/sign mismatch on "${c.label}": glyph="${c.glyph}" label="${c.deltaLabel}"`);
   }
-  // the specific bug: "Expired / abandoned" with a POSITIVE delta must show ▲.
+  // the specific bug: "Expired / abandoned" carries a POSITIVE delta for this
+  // operator and MUST render ▲ (the pre-fix bug showed ▼). Assert the chip is
+  // actually present + parsed — never let a missing selector pass vacuously.
   const expired = cards.find((c) => /expired/i.test(c.label));
   if (!expired) throw new Error("could not find the 'Expired / abandoned' KPI card");
-  if (expired.deltaLabel.startsWith("+") && expired.glyph !== "▲") {
+  if (!expired.deltaLabel.startsWith("+")) {
+    throw new Error(`Expired/abandoned delta not positive as expected (glyph="${expired.glyph}" label="${expired.deltaLabel}") — chip unparsed or data drift`);
+  }
+  if (expired.glyph !== "▲") {
     throw new Error(`Expired/abandoned has a +delta but renders "${expired.glyph}" (regressed: must be ▲)`);
   }
-  console.log(`delta glyph/sign agree on all chips; Expired/abandoned: "${expired.glyph} ${expired.deltaLabel}"`);
+  console.log(`delta glyph/sign agree on ${chipsChecked} chips; Expired/abandoned: "${expired.glyph} ${expired.deltaLabel}"`);
 
   // (2) Deposit empty-state honesty: a measured-zero deposit tile shows the
   //     neutral "No deposits this period" treatment — value "—", no red accent,
   //     sparkline suppressed — never a red $0/0% alarm.
   const deposits = cards.filter((c) => /deposit/i.test(c.label));
-  if (!deposits.length) throw new Error("no deposit KPI tiles found");
+  if (deposits.length < 2) throw new Error(`expected 2 deposit KPI tiles, found ${deposits.length}`);
   const isDash = (v) => /^[—–-]$/.test(v); // em / en / hyphen — the empty placeholder
-  let emptyDeposits = 0;
   for (const d of deposits) {
-    if (!isDash(d.value)) { console.log(`deposit tile "${d.label}" has data (${d.value}) — empty-state N/A`); continue; }
-    emptyDeposits++;
+    // This operator's deposits are a measured zero -> the tile MUST take the
+    // neutral empty-state, not a red $0/0%. A non-dash value here means either a
+    // regression or a stale build that predates the fix — fail loudly either way.
+    if (!isDash(d.value)) throw new Error(`deposit "${d.label}" shows "${d.value}" not the neutral "—" empty-state (regressed or pre-#38 build)`);
     if (d.emptyLabel !== "No deposits this period") throw new Error(`empty deposit "${d.label}" missing neutral label (got "${d.emptyLabel}")`);
     if (/bg-red-/.test(d.accent)) throw new Error(`empty deposit "${d.label}" shows a RED accent — false alarm`);
     if (d.hasSpark) throw new Error(`empty deposit "${d.label}" still drew a sparkline (should be suppressed)`);
   }
-  console.log(`deposit empty-state honest on ${emptyDeposits}/${deposits.length} deposit tiles (neutral, no red, no spark)`);
+  console.log(`deposit empty-state honest on ${deposits.length} measured-zero tiles (neutral "—", no red, no spark)`);
 
   // (3) Headings are legible on the light canvas: h1 + section h2s render a DARK
   //     colour, not the near-white that ghosted them before the contrast fix.
