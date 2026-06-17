@@ -4,8 +4,8 @@ namespace HfcDemo;
 public static partial class Seed
 {
     // ── Brand catalog (all 8 kept so existing booking demo still works) ───────
-    // Num = numeric dashboard id. The 3 dashboard brands carry an archetype +
-    // royalty rate; the other 5 stay catalog-only (no archetype, no dashboard data).
+    // Num = numeric dashboard id. All 8 brands now carry an archetype + royalty
+    // rate and have dashboard territories (5–8 each, 49 total in Seed.Dashboard.cs).
     private static readonly (string Id, string Name, string Tagline, int Num, string Archetype, double Royalty)[] Brands =
     {
         ("budget-blinds",   "Budget Blinds",         "Custom window coverings, in-home.", 1, "project_installation", 0.05),
