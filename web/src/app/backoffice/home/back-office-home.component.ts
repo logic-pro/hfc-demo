@@ -26,13 +26,16 @@ interface SectionCard {
   imports: [RouterLink],
   template: `
     <header class="border-b border-[var(--line)] pb-6">
-      <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-text)]">Back office</p>
+      <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-text)]">
+        Back office
+      </p>
       <h1 class="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink-strong)]">
         Welcome, {{ firstName() }}
       </h1>
       <p class="mt-1.5 max-w-prose text-sm text-[var(--ink-muted)]">
-        Corporate administration for {{ tenant.scopeName() || 'the network' }} — build reports, drill into
-        territory health, and manage who can see what. Everything here is scoped to your access.
+        Corporate administration for {{ tenant.scopeName() || 'the network' }} — build reports,
+        drill into territory health, and manage who can see what. Everything here is scoped to your
+        access.
       </p>
     </header>
 
@@ -44,27 +47,34 @@ interface SectionCard {
             class="group flex h-full flex-col rounded-[var(--r-lg)] border border-[var(--line)]
                    bg-[var(--surface)] p-5 shadow-[var(--shadow-card)] transition-colors
                    hover:border-[var(--accent)] focus-visible:outline focus-visible:outline-2
-                   focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">
+                   focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
             <div class="flex items-start justify-between gap-3">
               <span
                 class="inline-flex h-10 w-10 items-center justify-center rounded-[var(--r-md)]
                        bg-[var(--accent-soft)] text-lg text-[var(--accent-text)]"
-                aria-hidden="true">{{ card.icon }}</span>
+                aria-hidden="true"
+                >{{ card.icon }}</span
+              >
               @if (card.status === 'soon') {
                 <span
                   class="rounded-full border border-[var(--line)] bg-[var(--neutral-soft)] px-2 py-0.5
-                         text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+                         text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]"
+                >
                   Coming soon
                 </span>
               } @else {
                 <span
                   class="rounded-full border border-[var(--good)]/40 bg-[var(--good-soft)] px-2 py-0.5
-                         text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--good)]">
+                         text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--good)]"
+                >
                   Available
                 </span>
               }
             </div>
-            <h2 class="mt-4 text-base font-semibold text-[var(--ink-strong)] group-hover:text-[var(--accent-text)]">
+            <h2
+              class="mt-4 text-base font-semibold text-[var(--ink-strong)] group-hover:text-[var(--accent-text)]"
+            >
               {{ card.title }}
             </h2>
             <p class="mt-1.5 text-sm leading-relaxed text-[var(--ink-muted)]">{{ card.blurb }}</p>
@@ -97,7 +107,7 @@ export class BackOfficeHomeComponent {
       path: 'territories',
       icon: '◷',
       blurb: 'Explore every territory in scope and drill into a single scorecard.',
-      status: 'soon',
+      status: 'live',
     },
     {
       title: 'Users & Roles',
