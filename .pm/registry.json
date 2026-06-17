@@ -1,42 +1,37 @@
 {
-  "_comment": "Lanes are REUSABLE NATO slots (alpha..echo): the worktree is a persistent execution slot; the task/role/allowed_paths/skills are reassigned per round via the .pm bus. PM-owned (single writer). 'name' (friendly) is decoupled from 'branch' so we never have to rename a branch mid-round.",
-  "namingConvention": "Slots: alpha, bravo, charlie, delta, echo (+ special-purpose like wt-modularize). A slot takes a fresh feat/<area> or chore/<area> branch per assignment. NEVER rename a branch with an open PR or mid-round. Physical `git worktree move` only when that slot's VS Code window is CLOSED.",
-  "renameDone": [
-    "delta  ← slice-a-auth-tenancy dir renamed to hfc-demo-worktrees/delta; now on a clean slot/delta @ origin/main; FREE slot.",
-    "echo   ← slice-d-franchisee-dashboard dir renamed to hfc-demo-worktrees/echo; branch + in-flight franchisee work preserved. Repurpose to new work only after its PR merges."
-  ],
+  "_comment": "Lanes are REUSABLE NATO slots (alpha..echo + chore-modularize): the worktree is a persistent execution slot; the task/role/allowed_paths/skills are reassigned per round via the .pm bus. PM-owned (single writer). 'name' (friendly) is decoupled from 'branch' so we never have to rename a branch mid-round.",
+  "namingConvention": "Slots: alpha, bravo, charlie, delta, echo, chore-modularize. A slot takes a fresh feat/<area> or chore/<area> branch per assignment. NEVER rename a branch with an open PR or mid-round. Physical `git worktree move` only when that slot's VS Code window is CLOSED.",
+  "_reconciled": "2026-06-16Tm — Back-Office Wave 1 round assigned (files: outbox/<slot>/2026-06-16m__*.md; prior round moved to .pm/archive/<slot>/). Redesign #46 is LIVE. DISJOINT path ownership so all 6 run in parallel. Foundation (chore-modularize) lands FIRST; UI lanes rebase onto it. Run /start-lane in each window. Plan: docs/backoffice/ROADMAP.md · contracts: docs/backoffice/CONTRACTS.md.",
   "slots": [
-    { "name": "alpha",   "dir": "hfc-demo-worktrees/alpha",   "branch": "alpha",
-      "status": "merged", "task": "Corporate read-model + rollup (DONE — PR #3)", "free": false,
-      "allowed_paths": ["api/ReadModel.cs","api/Rollup.cs","api/Domain.cs","api/AppDb.cs","api/Seed.cs"],
+    { "name": "chore-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "feat/backoffice-shell",
+      "status": "assigned", "task": "FOUNDATION: back-office shell + scope-aware nav + /back-office route subtree + reusable ComingSoon + back-office home + Users&Roles/Org&Catalog admin stubs + working stub files at reports/territories paths. LANDS FIRST (gates the UI lanes).", "free": false,
+      "allowed_paths": ["web/src/app/app.routes.ts","web/src/app/app-shell.ts","web/src/app/backoffice/shell/**","web/src/app/backoffice/shared/**","web/src/app/backoffice/home/**","web/src/app/backoffice/admin/**","web/src/app/backoffice/reports/report-builder.component.ts","web/src/app/backoffice/territories/territory-explorer.component.ts","web/src/app/backoffice/territories/territory-scorecard.component.ts"],
+      "skills": ["frontend-bi-dashboard-architect","worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "alpha", "dir": "hfc-demo-worktrees/alpha", "branch": "feat/reporting-api",
+      "status": "assigned", "task": "REPORTING API (contract owner): GET /api/reports/catalog, POST /api/reports/query, /api/reports/saved CRUD over the existing read-model. Corporate-scope, RBAC read-down, problem+json. Publish C2 shapes in first commit.", "free": false,
+      "allowed_paths": ["api/**"],
+      "skills": ["corporate-rollup-readmodel-architect","franchise-kpi-metric-guard","worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "charlie", "dir": "hfc-demo-worktrees/charlie", "branch": "feat/report-builder-ui",
+      "status": "assigned", "task": "REPORT BUILDER UI (flagship): metrics x dimensions x period -> run -> table+chart -> CSV/XLSX export (exceljs head start in stash@{0}) -> save. Depends on Foundation (rebase after it lands) + alpha C2 (mock until live).", "free": false,
+      "allowed_paths": ["web/src/app/backoffice/reports/**"],
+      "skills": ["frontend-bi-dashboard-architect","dashboard-trust-provenance-polish","worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "bravo", "dir": "hfc-demo-worktrees/bravo", "branch": "feat/territory-explorer",
+      "status": "assigned", "task": "TERRITORY EXPLORER + scorecard drill-down: sortable/filterable list of all in-scope territories -> per-territory scorecard (/back-office/territories/:id). Reads existing /api/territories + read-model. Depends on Foundation.", "free": false,
+      "allowed_paths": ["web/src/app/backoffice/territories/**"],
+      "skills": ["frontend-bi-dashboard-architect","ceo-dashboard-intervention-loop","dashboard-crossfilter-scope","worktree-summary-reporter"] },
+
+    { "name": "delta", "dir": "hfc-demo-worktrees/delta", "branch": "chore/deploy-hardening",
+      "status": "assigned", "task": "INFRA/CI: harden deploy.sh (auto-detect region; reconcile RG-meta(eastus2) vs resources(centralus); add --code-only mode) + ensure CI builds backoffice/** on PRs. Independent lane.", "free": false,
+      "allowed_paths": ["infra/**",".github/**","scripts/**"],
       "skills": ["worktree-summary-reporter","worktree-continuation"] },
 
-    { "name": "bravo",   "dir": "hfc-demo-worktrees/bravo",   "branch": "bravo",
-      "status": "active", "task": "Dashboard API + RBAC + EF swap (merge #3)", "free": false,
-      "allowed_paths": ["api/Dashboard/**"],
-      "skills": ["worktree-summary-reporter","worktree-continuation"] },
-
-    { "name": "charlie", "dir": "hfc-demo-worktrees/charlie", "branch": "charlie",
-      "status": "active", "task": "Franchisor executive dashboard UI (merge #4)", "free": false,
-      "allowed_paths": ["web/src/app/dashboard/**","web/src/app/app-shell.ts","web/src/app/app.routes.ts","web/src/index.html","web/src/main.ts","web/src/styles.css","web/src/app/tenant.interceptor.ts"],
-      "skills": ["frontend-bi-dashboard-architect","dashboard-crossfilter-scope","dashboard-trust-provenance-polish","worktree-summary-reporter","worktree-continuation"] },
-
-    { "name": "delta",   "dir": "hfc-demo-worktrees/delta", "branch": "slot/delta",
-      "status": "free", "task": "AWAITING ASSIGNMENT (clean slot @ origin/main)", "free": true,
-      "allowed_paths": [],
-      "skills": ["worktree-continuation","worktree-summary-reporter"],
-      "_note": "FREE slot — assign next backlog item via .pm/outbox/delta/; set allowed_paths + skills per task. For a real feature, branch feat/<area> off slot/delta." },
-
-    { "name": "echo",    "dir": "hfc-demo-worktrees/echo", "branch": "slice-d-franchisee-dashboard",
-      "status": "assigned", "task": "franchisee dashboard e2e screenshot driver (e2e/drive-franchisee.mjs)", "free": false,
+    { "name": "echo", "dir": "hfc-demo-worktrees/echo", "branch": "test/backoffice-e2e",
+      "status": "assigned", "task": "e2e/QA: drive /back-office nav (corporate-only RBAC), report-builder happy path, territory drill-down; extend smoke-api.sh with /api/reports/*. Carries cherry-picked 5cf991b assertion-hardening. Runs last.", "free": false,
       "allowed_paths": ["e2e/**"],
-      "skills": ["start-lane","worktree-summary-reporter","worktree-continuation"],
-      "_note": "Franchisee dashboard UI shipped (merge #5, PR #8). Reassigned to the e2e driver. Run /start-lane in the echo window to pick up .pm/outbox/echo/." },
-
-    { "name": "wt-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "chore/modularize-endpoints",
-      "status": "holding-until-round1-done", "task": "Hub-file modularization (round-2 enabler)", "free": false,
-      "allowed_paths": ["api/Endpoints/**","api/Data/Config/**","api/Seed/**","api/Program.cs","api/AppDb.cs","api/Seed.cs"],
-      "skills": ["worktree-summary-reporter","worktree-continuation"] }
+      "skills": ["qa-integration-tester","start-lane","worktree-summary-reporter","worktree-continuation"] }
   ],
-  "retired": ["slice-b-ai-intake (PR #1 → main)","slice-c-nps-pipeline (PR #2 → main)"]
+  "retired": ["slice-b-ai-intake (PR #1 -> main)","slice-c-nps-pipeline (PR #2 -> main)"]
 }
