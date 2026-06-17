@@ -3,8 +3,8 @@ namespace HfcDemo;
 // ── D1 seed — the believable, deliberately dramatic demo world ───────────────
 // Seeds the data SPINE on main's two-axis tenancy (franchisee = isolation key,
 // brand = grouping):
-//   • Dashboard plane  → 8 catalog brands (3 the dashboard demo set across the 3
-//                        archetypes), 2 regions, 24 territories with real-ish
+//   • Dashboard plane  → all 8 catalog brands (every brand carries an archetype +
+//                        royalty), 2 regions, 49 territories with real-ish
 //                        coords + a tenure spread, ~18 months of monthly history.
 //                        Each dashboard territory is operated by a named FRANCHISEE
 //                        (the data controller) — multi-unit operators surface as

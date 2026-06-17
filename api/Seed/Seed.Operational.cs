@@ -118,9 +118,19 @@ public static partial class Seed
                             TerritoryId = te.Id, StartUtc = start, IsBooked = true, Version = 0,
                         });
 
-                        // Deterministic deposit/leak decision: a stable rotation
-                        // hits convRate; the rest are leaks (no deposit).
-                        bool paid = (b % 100) < (int)Math.Round(convRate * 100);
+                        // Deterministic deposit/leak decision: each appointment gets a
+                        // stable 0..99 "roll" from (month, booking-index, profile); it
+                        // is paid when the roll clears convRate, else it's a leak (no
+                        // deposit). The roll is DECOUPLED from seed order on purpose —
+                        // the leak fraction lands in EVERY month, so the operator
+                        // dashboard's WTD/MTD/QTD/YTD windows all show a realistic
+                        // conversion, never a degenerate 0% or 100%.
+                        //   Bug before: `(b % 100) < convRate*100`, where `b` is the
+                        //   per-month index (0..~14) and never reaches convRate*100
+                        //   (55..85), marked EVERY booking paid → 100% conversion,
+                        //   zero leaks, zero expired across all 8 brands.
+                        int roll = (monthOffset * 17 + b * 31 + profile * 7) % 100;
+                        bool paid = roll < (int)Math.Round(convRate * 100);
                         bool past = start < DateTime.UtcNow;
 
                         apptCounter++;
