@@ -242,4 +242,85 @@ chk "$(code -H "Authorization: Bearer $CORP" "$B/api/territories?page=0")"      
 # health-score rejects a non-latest period) — never a misleading echoed label.
 chk "$(code -H "Authorization: Bearer $CORP" "$B/api/dashboard/corporate?period=999999")" "404" "corporate unknown period=999999 -> 404"
 
+# ── Reporting API (§C2): read-only metric/dimension query + saved-report CRUD ──
+# Corporate-scope read-down over the EXISTING corporate read-model. RBAC reads
+# DOWN (brand sees only its territories); every error path -> problem+json. Reuses
+# $CORP / $BB / $BNUM / $BTOK / $NET from the dashboard + 4-tier RBAC blocks above.
+qj='-H Content-Type:application/json'
+
+# auth gate: the whole reporting surface is corporate-only (franchisee operator -> 403).
+chk "$(code "$B/api/reports/catalog")" "401" "reports/catalog: no token -> 401"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/reports/catalog")" "200" "reports/catalog: corporate -> 200"
+chk "$(code -X POST -H "Authorization: Bearer $BB" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"]}')" "403" "reports/query: franchisee -> 403 (corporate-only)"
+
+# catalog carries metrics + dimensions + at least the latest period.
+catok=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/reports/catalog" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+mk={m['key'] for m in d['metrics']}
+dk={x['key'] for x in d['dimensions']}
+print({'composite_score','gross_revenue','nps_score','at_risk_count'}<=mk and {'brand','region','territory'}<=dk and len(d['periods'])>=1)")
+chk "$catok" "True" "reports/catalog: metrics+dimensions+periods present"
+
+# query: composite + revenue + at_risk by brand. Provenance rides through to meta:
+# gross_revenue is seeded/illustrative; nps_score is per-row (measured|seeded|mixed).
+provok=$(curl -s -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" \
+  -d '{"metrics":["composite_score","gross_revenue","nps_score"],"dimensions":["brand"]}' | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+prov={p['metricKey']:p for p in d['meta']['provenance']}
+cols={c['key']:c for c in d['columns'] if c['kind']=='metric'}
+print(bool(d['rows'])
+      and prov['gross_revenue']['provenanceType']=='seeded' and prov['gross_revenue']['illustrative'] is True
+      and cols['gross_revenue']['illustrative'] is True
+      and prov['composite_score']['illustrative'] is False
+      and prov['nps_score']['provenanceType'] in ('measured','seeded','mixed')
+      and 'asOfDate' in prov['composite_score'])")
+chk "$provok" "True" "reports/query: provenance carried to columns + meta (seeded illustrative, derived not)"
+
+# validation -> problem+json: empty metrics / unknown metric / unknown dimension -> 400,
+# unknown period -> 404 (consistent with the dashboard), bad riskBand -> 400.
+chk "$(code -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":[]}')" "400" "reports/query: empty metrics -> 400"
+chk "$(code -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["bogus"]}')" "400" "reports/query: unknown metric -> 400"
+chk "$(code -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"],"dimensions":["bogus"]}')" "400" "reports/query: unknown dimension -> 400"
+chk "$(code -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"],"period":999999}')" "404" "reports/query: unknown period -> 404"
+chk "$(code -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"],"filters":{"riskBand":"nope"}}')" "400" "reports/query: bad riskBand -> 400"
+# error bodies are application/problem+json (RFC 7807), not a stack trace.
+ct=$(curl -s -D - -o /dev/null -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["bogus"]}' | grep -i '^content-type:' | tr -d '\r')
+chk "$(echo "$ct" | grep -qi 'application/problem+json' && echo ok || echo "$ct")" "ok" "reports/query: error -> application/problem+json"
+
+# RBAC reads DOWN: a brand token's /query aggregates ONLY its own territories (a
+# strict, non-empty subset of the network) and echoes scopeLevel=brand. Cross-scope
+# attempt yields a smaller scoped result, never the network totals (no leak).
+RNET=$(curl -s -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/query" -d '{"metrics":["territory_count"]}' | jget "['rows'][0]['territory_count']")
+RBRD=$(curl -s -X POST -H "Authorization: Bearer $BTOK" $qj "$B/api/reports/query" -d '{"metrics":["territory_count"]}' | jget "['rows'][0]['territory_count']")
+chk "$([ "$RNET" -gt "$RBRD" ] && [ "$RBRD" -gt 0 ] && echo ok || echo "net=$RNET brd=$RBRD")" "ok" "reports/query: brand reads DOWN (brand $RBRD < network $RNET, >0)"
+bsl=$(curl -s -X POST -H "Authorization: Bearer $BTOK" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"],"dimensions":["brand"]}' | jget "['meta']['scope']['scopeLevel']")
+chk "$bsl" "brand" "reports/query: brand token -> scopeLevel=brand (scoped echo)"
+
+# saved-report CRUD + read-down library RBAC. A brand-owned report is invisible to
+# another brand; a network-owned report is visible to all but editable only by network.
+SID=$(curl -s -X POST -H "Authorization: Bearer $BTOK" $qj "$B/api/reports/saved" \
+  -d '{"name":"smoke brand report","definition":{"metrics":["composite_score"],"dimensions":["territory"]}}' \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+chk "$([ -n "$SID" ] && echo ok || echo empty)" "ok" "reports/saved: brand POST creates a report"
+chk "$(curl -s -H "Authorization: Bearer $BTOK" "$B/api/reports/saved/$SID" | jget "['ownerScopeLevel']")" "brand" "reports/saved: created report tagged owner=brand"
+chk "$(code -H "Authorization: Bearer $CORP" "$B/api/reports/saved/$SID")" "200" "reports/saved: network sees brand-owned report (read-down library)"
+ROTHER=$(curl -s "$B/api/brands" | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(b['num'] for b in d if b['num']!=$BNUM))")
+ROTOK=$(brandtok "$ROTHER")
+chk "$(code -H "Authorization: Bearer $ROTOK" "$B/api/reports/saved/$SID")" "404" "reports/saved: another brand cannot see it -> 404 (no leak)"
+chk "$(code -X PUT -H "Authorization: Bearer $ROTOK" $qj "$B/api/reports/saved/$SID" -d '{"name":"hijack","definition":{"metrics":["composite_score"]}}')" "404" "reports/saved: another brand cannot edit it -> 404"
+chk "$(code -X PUT -H "Authorization: Bearer $CORP" $qj "$B/api/reports/saved/$SID" -d '{"name":"renamed by corp","definition":{"metrics":["composite_score"]}}')" "200" "reports/saved: network edits any -> 200"
+# a network-owned report is VISIBLE to a brand but NOT editable by it -> 403 (the
+# distinct read-down branch: visible-but-unowned).
+NRID=$(curl -s -X POST -H "Authorization: Bearer $CORP" $qj "$B/api/reports/saved" \
+  -d '{"name":"smoke network report","definition":{"metrics":["composite_score"]}}' \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/reports/saved/$NRID")" "200" "reports/saved: brand sees network-owned report -> 200"
+chk "$(code -X DELETE -H "Authorization: Bearer $BTOK" "$B/api/reports/saved/$NRID")" "403" "reports/saved: brand cannot delete network-owned -> 403"
+chk "$(code -X DELETE -H "Authorization: Bearer $CORP" "$B/api/reports/saved/$NRID")" "204" "reports/saved: network deletes its own -> 204"
+chk "$(code -X DELETE -H "Authorization: Bearer $BTOK" "$B/api/reports/saved/$SID")" "204" "reports/saved: owner deletes its own -> 204"
+chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/reports/saved/$SID")" "404" "reports/saved: GET after delete -> 404"
+chk "$(code -X POST -H "Authorization: Bearer $BTOK" $qj "$B/api/reports/saved" -d '{"definition":{"metrics":["composite_score"]}}')" "400" "reports/saved: missing name -> 400"
+
 echo "All $pass checks passed."

@@ -32,6 +32,11 @@ public class AppDb : DbContext
     public DbSet<TerritoryPeriodSummary> TerritoryPeriodSummaries => Set<TerritoryPeriodSummary>();
     public DbSet<WatchlistFlag> WatchlistFlags => Set<WatchlistFlag>();
 
+    // ── Reporting: saved report definitions (§C2) ─────────────────────────────
+    // Corporate plane — no tenant query filter (read-down scope filter at request
+    // time, mirroring the read-model tables above).
+    public DbSet<Reporting.SavedReport> SavedReports => Set<Reporting.SavedReport>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         // Schema config (keys, indexes, table mappings, the Slot concurrency token)
