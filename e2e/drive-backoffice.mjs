@@ -142,36 +142,41 @@ try {
     const n = await rows.count();
     ok(n >= 1, `territory explorer: list is non-empty (${n} rows)`);
 
-    // sorted: read the first sortable numeric/score column down the rows and assert
-    // monotonic (default sort). We read each row's last numeric cell as the sort key.
-    const keys = await rows.evaluateAll((trs) =>
-      trs.map((tr) => {
-        const nums = [...tr.querySelectorAll("td")]
-          .map((td) => parseFloat((td.textContent || "").replace(/[^0-9.\-]/g, "")))
-          .filter((v) => !Number.isNaN(v));
-        return nums.length ? nums[nums.length - 1] : null;
-      }).filter((v) => v !== null),
-    );
-    if (keys.length >= 2) {
-      const asc = keys.every((v, i) => i === 0 || keys[i - 1] <= v);
-      const desc = keys.every((v, i) => i === 0 || keys[i - 1] >= v);
-      ok(asc || desc, `territory explorer: list is sorted by its numeric column (${keys.length} keys, ${asc ? "asc" : desc ? "desc" : "UNSORTED"})`);
-    } else {
-      // Real surface may sort alphabetically (no numeric column to read) — don't
-      // false-fail; record that sortedness wasn't numerically determinable here.
-      skip(`territory explorer: no numeric column to verify sort order (rows=${n}) — finalize sort assertion against the real column once bravo lands`);
-    }
+    // sorted: the explorer defaults to worst-health-first — composite score ASCENDING
+    // (bravo: sortKey='score', sortDir='asc'). The composite score is the one .tnum
+    // cell per row; read it down the rows and assert it's monotonically ascending, so
+    // the at-risk tail is what a corporate admin sees first. A non-ascending order is
+    // a real regression (the intervention ordering broke), not a tolerated alt-sort.
+    const scores = await page
+      .locator("table tbody tr td span.tnum")
+      .evaluateAll((els) => els.map((e) => parseFloat((e.textContent || "").trim())).filter((v) => !Number.isNaN(v)));
+    ok(scores.length === n, `territory explorer: every row exposes a composite score (${scores.length}/${n})`);
+    const asc = scores.length >= 2 && scores.every((v, i) => i === 0 || scores[i - 1] <= v);
+    ok(asc, `territory explorer: default sort is worst-health-first (composite ascending; head=[${scores.slice(0, 5).join(", ")}])`);
 
-    // drill down: click the first row -> /back-office/territories/:id scorecard.
-    await rows.first().click();
-    await page.waitForTimeout(700);
+    // drill down: the row's navigation is the territory <a routerLink> in the row
+    // header cell (clicking the bare <tr> does nothing). Click it -> the per-territory
+    // scorecard route /back-office/territories/:id.
+    const firstLink = page.locator("table tbody tr th a").first();
+    ok((await firstLink.count()) > 0, "territory explorer: each row links to its scorecard (routerLink)");
+    await firstLink.click();
+    await page.waitForURL(/\/back-office\/territories\/[^/]+$/, { timeout: 8000 }).catch(() => {});
     const path = new URL(page.url()).pathname;
-    ok(/\/back-office\/territories\/[^/]+$/.test(path), `territory drill-down routes to a scorecard (${path})`);
-    // populated detail: the scorecard host renders and isn't a blank/coming-soon route.
-    const detailFilled =
-      !(await isStub(page)) &&
-      (await page.locator("main").innerText().catch(() => "")).trim().length > 40;
-    ok(detailFilled, "territory scorecard renders populated detail (not blank)");
+    const routed = /\/back-office\/territories\/[^/]+$/.test(path);
+    ok(routed, `territory drill-down routes to a scorecard (${path})`);
+    // populated detail — ONLY meaningful once we routed (gate on `routed`, else the
+    // list page's own copy passes it vacuously) AND once the async health-score fetch
+    // settles. The loaded scorecard paints the composite radial gauge (<ec-radial-gauge>,
+    // absent in the loading skeleton + the error/not-found state), so wait for it and
+    // assert it concretely rather than eyeballing a text-length heuristic.
+    let detailFilled = false;
+    if (routed) {
+      await page.waitForSelector("ec-radial-gauge", { timeout: 12000 }).catch(() => {});
+      const gauge = await page.locator("ec-radial-gauge").count();
+      const bodyLen = (await page.locator("main").innerText().catch(() => "")).trim().length;
+      detailFilled = gauge > 0 && !(await isStub(page)) && bodyLen > 80;
+    }
+    ok(detailFilled, "territory scorecard renders populated detail (composite gauge + body)");
     await shot("backoffice-3-territory-scorecard.png");
   }
 
