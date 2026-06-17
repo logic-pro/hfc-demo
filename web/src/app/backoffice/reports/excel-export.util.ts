@@ -7,7 +7,37 @@
 // columns are measured vs. illustrative, so an exported file can't quietly launder
 // a seeded placeholder into a "real" figure.
 
-import { ReportResult, PROVENANCE_LABEL, excelNumFmt, formatValue } from './reports.models';
+import {
+  ReportQueryResult,
+  ReportRow,
+  PROVENANCE_LABEL,
+  ProvenanceType,
+  excelNumFmt,
+  formatValue,
+} from './reports.models';
+
+// Read a flat-dictionary row's cell as a scalar (dimensionKeys is not a column).
+function cell(row: ReportRow, key: string): number | string | null {
+  const v = row[key];
+  return typeof v === 'number' || typeof v === 'string' || v === null ? v : null;
+}
+
+// Count by honesty: measured (real) vs illustrative (seeded / seeded-derived / mixed).
+function provenanceTally(result: ReportQueryResult): {
+  measured: number;
+  illustrative: number;
+  other: number;
+} {
+  let measured = 0,
+    illustrative = 0,
+    other = 0;
+  for (const p of result.meta.provenance) {
+    if (p.illustrative) illustrative++;
+    else if (p.provenanceType === 'measured') measured++;
+    else other++;
+  }
+  return { measured, illustrative, other };
+}
 
 // exceljs is heavy (~1.5 MB). It is pulled in via dynamic import only when an XLSX
 // export is actually triggered, so visiting the builder route never pays for it —
@@ -31,28 +61,30 @@ function csvCell(value: string | number | null | undefined): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function toCsv(result: ReportResult): string {
+export function toCsv(result: ReportQueryResult): string {
   const header = result.columns.map((c) => csvCell(c.label)).join(',');
   const lines = result.rows.map((row) =>
-    result.columns.map((c) => csvCell(row.cells[c.key] ?? '')).join(','),
+    result.columns.map((c) => csvCell(cell(row, c.key) ?? '')).join(','),
   );
   return [header, ...lines].join('\r\n');
 }
 
-export function downloadCsv(result: ReportResult, filename = 'report.csv'): void {
+export function downloadCsv(result: ReportQueryResult, filename = 'report.csv'): void {
   // BOM so Excel opens UTF-8 cleanly.
   const blob = new Blob(['﻿', toCsv(result)], { type: 'text/csv;charset=utf-8;' });
   triggerDownload(blob, filename);
 }
 
 export async function downloadXlsx(
-  result: ReportResult,
+  result: ReportQueryResult,
   filename = 'report.xlsx',
   title = 'Report',
 ): Promise<void> {
   // exceljs is CommonJS; normalise the default-interop so this works under both
   // the browser bundler and a plain ESM `import()`.
-  const mod = (await import('exceljs')) as unknown as { default?: typeof import('exceljs') } & typeof import('exceljs');
+  const mod = (await import('exceljs')) as unknown as {
+    default?: typeof import('exceljs');
+  } & typeof import('exceljs');
   const ExcelJS = mod.default ?? mod;
   const wb = new ExcelJS.Workbook();
   wb.creator = 'HFC Back Office · Report Builder';
@@ -73,20 +105,22 @@ export async function downloadXlsx(
   // Provenance caption — honest by construction.
   ws.mergeCells(`A2:${lastCol}2`);
   const cap = ws.getCell('A2');
+  const tally = provenanceTally(result);
+  const dimLabel = result.columns.find((c) => c.kind === 'dimension')?.label ?? 'Total';
   cap.value =
-    `${result.meta.dimensionLabel} · ${result.meta.periodLabel} · generated ${result.meta.generatedAt} · ` +
-    `Measured: ${result.meta.measuredMetrics.length}, Reported: ${result.meta.reportedMetrics.length}, ` +
-    `Illustrative: ${result.meta.illustrativeMetrics.length}`;
+    `By ${dimLabel} · ${result.meta.period.label} · generated ${result.meta.generatedAt} · ` +
+    `Measured: ${tally.measured}, Derived: ${tally.other}, Illustrative: ${tally.illustrative}`;
   cap.font = { italic: true, size: 10, color: { argb: 'FF6B7280' } };
 
   // Header row (row 3).
   const headerRow = ws.getRow(3);
   result.columns.forEach((c, i) => {
-    const cell = headerRow.getCell(i + 1);
-    cell.value = c.provenance ? `${c.label} (${PROVENANCE_LABEL[c.provenance]})` : c.label;
-    cell.font = { bold: true };
-    cell.alignment = { vertical: 'middle' };
-    cell.border = { bottom: { style: 'thin', color: { argb: 'FFBFC5CC' } } };
+    const hc = headerRow.getCell(i + 1);
+    const plane = (c.provenanceType ?? undefined) as ProvenanceType | undefined;
+    hc.value = c.kind === 'metric' && plane ? `${c.label} (${PROVENANCE_LABEL[plane]})` : c.label;
+    hc.font = { bold: true };
+    hc.alignment = { vertical: 'middle' };
+    hc.border = { bottom: { style: 'thin', color: { argb: 'FFBFC5CC' } } };
   });
   headerRow.commit();
 
@@ -94,15 +128,15 @@ export async function downloadXlsx(
   result.rows.forEach((row) => {
     const r = ws.addRow(
       result.columns.map((c) => {
-        const v = row.cells[c.key];
+        const v = cell(row, c.key);
         return v === null || v === undefined ? '' : v;
       }),
     );
     result.columns.forEach((c, i) => {
       if (c.kind === 'metric') {
-        const cell = r.getCell(i + 1);
-        cell.numFmt = excelNumFmt(c.unit);
-        cell.alignment = { horizontal: 'right' };
+        const mc = r.getCell(i + 1);
+        mc.numFmt = excelNumFmt(c.unit);
+        mc.alignment = { horizontal: 'right' };
       }
     });
   });

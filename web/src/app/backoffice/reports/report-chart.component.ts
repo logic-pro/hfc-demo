@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { ProvenanceType, Unit, formatValue } from './reports.models';
+import { PROVENANCE_VAR, ProvenanceType, formatValue } from './reports.models';
 
 export interface ChartDatum {
   label: string;
@@ -40,14 +40,16 @@ interface Bar {
           [attr.height]="H"
           role="img"
           [attr.aria-label]="ariaLabel()"
-          class="block">
+          class="block"
+        >
           <defs>
             <pattern
               id="bo-illustrative-hatch"
               width="6"
               height="6"
               patternTransform="rotate(45)"
-              patternUnits="userSpaceOnUse">
+              patternUnits="userSpaceOnUse"
+            >
               <rect width="6" height="6" [attr.fill]="barFill()" opacity="0.35" />
               <line x1="0" y1="0" x2="0" y2="6" [attr.stroke]="barFill()" stroke-width="3" />
             </pattern>
@@ -62,13 +64,17 @@ interface Bar {
               [attr.y2]="g.y"
               stroke="var(--line)"
               stroke-width="1"
-              [attr.stroke-dasharray]="g.v === 0 ? '0' : '2 4'" />
+              [attr.stroke-dasharray]="g.v === 0 ? '0' : '2 4'"
+            />
             <text
               [attr.x]="PAD_L - 8"
               [attr.y]="g.y + 4"
               text-anchor="end"
               class="fill-[var(--ink-muted)]"
-              style="font-size: 10px">{{ g.label }}</text>
+              style="font-size: 10px"
+            >
+              {{ g.label }}
+            </text>
           }
 
           <!-- Bars -->
@@ -80,7 +86,8 @@ interface Bar {
                 [attr.width]="b.w"
                 [attr.height]="b.h"
                 rx="3"
-                [attr.fill]="illustrative() ? 'url(#bo-illustrative-hatch)' : barFill()">
+                [attr.fill]="illustrative() ? 'url(#bo-illustrative-hatch)' : barFill()"
+              >
                 <title>{{ b.label }}: {{ b.display }}</title>
               </rect>
               <text
@@ -88,13 +95,19 @@ interface Bar {
                 [attr.y]="b.y - 5"
                 text-anchor="middle"
                 class="fill-[var(--ink)]"
-                style="font-size: 10px; font-weight: 600">{{ b.display }}</text>
+                style="font-size: 10px; font-weight: 600"
+              >
+                {{ b.display }}
+              </text>
               <text
                 [attr.x]="b.x + b.w / 2"
                 [attr.y]="H - PAD_B + 14"
                 text-anchor="middle"
                 class="fill-[var(--ink-muted)]"
-                style="font-size: 10px">{{ b.short }}</text>
+                style="font-size: 10px"
+              >
+                {{ b.short }}
+              </text>
             </g>
           }
         </svg>
@@ -105,7 +118,9 @@ interface Bar {
         }
       </figure>
     } @else {
-      <p class="py-8 text-center text-sm text-[var(--ink-muted)]">No chartable values for this metric.</p>
+      <p class="py-8 text-center text-sm text-[var(--ink-muted)]">
+        No chartable values for this metric.
+      </p>
     }
   `,
 })
@@ -113,8 +128,10 @@ export class ReportChartComponent {
   readonly data = input<ChartDatum[]>([]);
   readonly metricLabel = input<string>('');
   readonly dimensionLabel = input<string>('');
-  readonly unit = input<Unit | undefined>(undefined);
+  readonly unit = input<string | undefined>(undefined);
   readonly provenance = input<ProvenanceType | undefined>(undefined);
+  /** Honesty flag straight off the API column — the primary signal, not the plane. */
+  readonly illustrativeFlag = input<boolean>(false);
 
   // viewBox geometry — fixed coordinate space, scaled responsively by width="100%".
   readonly W = 720;
@@ -124,8 +141,12 @@ export class ReportChartComponent {
   readonly PAD_T = 18;
   readonly PAD_B = 28;
 
-  readonly illustrative = computed(() => this.provenance() === 'seeded');
-  readonly barFill = computed(() => (this.illustrative() ? 'var(--prov-seeded)' : 'var(--accent)'));
+  readonly illustrative = computed(() => this.illustrativeFlag() || this.provenance() === 'seeded');
+  readonly barFill = computed(() => {
+    const p = this.provenance();
+    if (this.illustrative()) return PROVENANCE_VAR.seeded;
+    return p && p !== 'measured' ? PROVENANCE_VAR[p] : 'var(--accent)';
+  });
 
   private readonly max = computed(() => {
     const vals = this.data().map((d) => d.value);
