@@ -21,6 +21,7 @@ import { ThemeService } from './theme.service';
         <span class="mark">HFC<span>platform</span></span>
         @if (tenant.isCorporate()) {
           <a routerLink="/corporate" routerLinkActive="active">Executive</a>
+          <a routerLink="/back-office" routerLinkActive="active">Back office</a>
         }
         @if (tenant.scope() === 'franchisee') {
           <a routerLink="/dashboard" routerLinkActive="active">Operator</a>
