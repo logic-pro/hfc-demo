@@ -100,7 +100,10 @@ public class TenancyTests
         var irvine = factory.ClientFor(Irvine, BrandBB);
         var tustin = factory.ClientFor(Tustin, BrandBB);
 
-        var tustinSlot = (await tustin.GetFromJsonAsync<List<SlotDto>>("/api/slots"))!.First();
+        // Pick an OPEN slot: the operational franchisees are now seeded with some
+        // pre-booked slots (historical activity), so .First() could return a booked
+        // one — which would make the "still open" assertion vacuous/wrong.
+        var tustinSlot = (await tustin.GetFromJsonAsync<List<SlotDto>>("/api/slots"))!.First(s => !s.IsBooked);
 
         var resp = await irvine.PostAsJsonAsync("/api/appointments",
             new BookRequest(tustinSlot.Id, "Intruder", "In-home consult"));
