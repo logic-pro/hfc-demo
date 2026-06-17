@@ -27,6 +27,11 @@ builder.Services.AddSingleton<IntakeService>();
 // reference/fallback; flip this one line back to it to run without a DB.)
 builder.Services.AddSingleton<IDashboardReadModel, EfDashboardReadModel>();
 builder.Services.AddScoped<DashboardScopeHolder>();
+
+// Reporting read model (§C2). Singleton over the SAME corporate read-model storage:
+// per-(territory, period) facts are baked once on first resolution (after Seed +
+// RecomputeRollup), then queries are pure in-memory filter/group/aggregate.
+builder.Services.AddSingleton<HfcDemo.Reporting.ReportingReadModel>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -98,6 +103,9 @@ using (var scope = app.Services.CreateScope())
     // Build the corporate read model from the seeded operational/reported planes.
     // One on-demand/boot rebuild (CONTRACT clock decision); idempotent full rebuild.
     Rollup.Recompute(db);
+    // §C2 reporting: ensure the additive saved_report table exists even on a
+    // pre-existing DB (EnsureCreated is a no-op once the DB is created).
+    HfcDemo.Reporting.ReportingStore.EnsureCreated(db);
 }
 
 app.UseAuthentication();
@@ -138,6 +146,7 @@ app.MapCatalog();              // /api/brands, /api/franchisees, dev token mint
 app.MapBooking();              // /api/slots, /api/appointments (+ deposit)
 app.MapIntake();               // /api/intake/parse
 app.MapDashboard();            // D6–D9 corporate roll-up projections
+app.MapReporting();            // §C2 reporting: catalog / query / saved CRUD
 app.MapNps();                  // /api/appointments/{id}/nps, /api/nps
 app.MapFranchiseeDashboard();  // /api/dashboard, /api/dashboard/territories
 
