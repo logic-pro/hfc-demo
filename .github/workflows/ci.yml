@@ -46,12 +46,15 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       # The SPA is the surface most likely to regress, so every PR builds it and a
-      # red build fails the check. Dev configuration on purpose: the prod build
-      # inlines Google Fonts over the network and would flake if Fonts is
-      # unreachable on a runner. The optimized/prod build is still exercised by
-      # screenshots.yml on push to main (and again by post-deploy-e2e on the live
-      # deploy), so prod-only build errors still get caught before users do.
-      - name: Build SPA (dev config — fails the PR on a red build)
+      # red build fails the check. `ng build` compiles the WHOLE web/src tree, so the
+      # new Back-Office Wave 1 surface (src/app/backoffice/**) is covered automatically
+      # — a TypeScript/template error anywhere under backoffice/** fails this gate.
+      # Dev configuration on purpose: the prod build inlines Google Fonts over the
+      # network and would flake if Fonts is unreachable on a runner. The optimized/prod
+      # build is still exercised by screenshots.yml on push to main (and again by
+      # post-deploy-e2e on the live deploy), so prod-only build errors still get caught
+      # before users do.
+      - name: Build SPA (dev config — covers backoffice/** — fails the PR on a red build)
         working-directory: web
         run: |
           npm ci
@@ -66,6 +69,26 @@ jobs:
         working-directory: web
         continue-on-error: true
         run: npx --yes prettier@3 --check "src/**/*.{ts,html,css,json}"
+
+      # Dedicated lint signal for the NEW back-office surface (src/app/backoffice/**).
+      # Isolated from the repo-wide check so back-office format drift is visible as its
+      # own check rather than buried among legacy drift. NON-BLOCKING for now only
+      # because the C1 foundation (PR #48) landed 8 files with pre-existing drift; once
+      # the web lane runs `prettier --write src/app/backoffice/**`, drop continue-on-error
+      # to make this a HARD gate (this surface is new — it should be held clean from the
+      # start). No-op when backoffice/** is absent.
+      - name: Lint back-office code (prettier · backoffice/** · flip to blocking once clean)
+        if: always()
+        working-directory: web
+        continue-on-error: true
+        run: |
+          if [ -d src/app/backoffice ] && \
+             find src/app/backoffice -type f \( -name '*.ts' -o -name '*.html' -o -name '*.css' -o -name '*.json' \) | grep -q .; then
+            echo "Linting src/app/backoffice/** …"
+            npx --yes prettier@3 --check "src/app/backoffice/**/*.{ts,html,css,json}"
+          else
+            echo "No back-office sources yet (src/app/backoffice/** absent) — gate is a no-op."
+          fi
 
       # --- Smoke: boot the API and assert its guarantees end-to-end ---
       # ASPNETCORE_ENVIRONMENT=Development is required: the /api/dev/token mint
