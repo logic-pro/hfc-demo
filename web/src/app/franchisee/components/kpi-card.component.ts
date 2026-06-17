@@ -47,8 +47,18 @@ import { ActionStageFilter, KpiCardVm, MetricStatus } from '../dashboard.models'
       <!-- inline sparkline (zero-dependency). Suppressed for empty tiles so a flat
            zero line never reads as a measured trend. -->
       @if (!kpi().isEmpty && sparkPoints()) {
-        <svg class="mt-3 ml-2 h-8 w-full text-[var(--accent)]/60" [attr.viewBox]="'0 0 100 32'" preserveAspectRatio="none" aria-hidden="true">
-          <polyline [attr.points]="sparkPoints()" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <svg
+          class="mt-3 ml-2 h-8 w-full text-[var(--accent)]/60"
+          [attr.viewBox]="'0 0 100 32'"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <polyline
+            [attr.points]="sparkPoints()"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
         </svg>
       } @else {
         <div class="mt-3 h-8" aria-hidden="true"></div>
@@ -61,20 +71,27 @@ export class KpiCardComponent {
   readonly drill = output<ActionStageFilter>();
 
   private statusToColour(s: MetricStatus): string {
-    return s === 'good' ? 'bg-[var(--good)]'
-      : s === 'warning' ? 'bg-[var(--warning)]'
-      : s === 'bad' ? 'bg-[var(--critical)]'
-      : 'bg-[var(--line-strong)]';
+    return s === 'good'
+      ? 'bg-[var(--good)]'
+      : s === 'warning'
+        ? 'bg-[var(--warning)]'
+        : s === 'bad'
+          ? 'bg-[var(--critical)]'
+          : 'bg-[var(--line-strong)]';
   }
 
   readonly accentClass = computed(() => this.statusToColour(this.kpi().status));
 
   readonly deltaClass = computed(() => {
     switch (this.kpi().deltaStatus) {
-      case 'good': return 'bg-[var(--good-soft)] text-[var(--good)]';
-      case 'bad': return 'bg-[var(--critical-soft)] text-[var(--critical)]';
-      case 'warning': return 'bg-[var(--warning-soft)] text-[var(--warning)]';
-      default: return 'bg-[var(--neutral-soft)] text-[var(--ink-muted)]';
+      case 'good':
+        return 'bg-[var(--good-soft)] text-[var(--good)]';
+      case 'bad':
+        return 'bg-[var(--critical-soft)] text-[var(--critical)]';
+      case 'warning':
+        return 'bg-[var(--warning-soft)] text-[var(--warning)]';
+      default:
+        return 'bg-[var(--neutral-soft)] text-[var(--ink-muted)]';
     }
   });
 
@@ -83,9 +100,12 @@ export class KpiCardComponent {
    *  and "Fill −1.2%" is ▼ in red — the arrow always agrees with the sign. */
   readonly directionGlyph = computed(() => {
     switch (this.kpi().deltaDirection) {
-      case 'up': return '▲';
-      case 'down': return '▼';
-      default: return '—';
+      case 'up':
+        return '▲';
+      case 'down':
+        return '▼';
+      default:
+        return '—';
     }
   });
 
@@ -93,8 +113,12 @@ export class KpiCardComponent {
   readonly sparkPoints = computed(() => {
     const t = this.kpi().trend;
     if (!t || t.length < 2) return '';
-    const min = Math.min(...t), max = Math.max(...t);
-    const span = max - min || 1;
+    const min = Math.min(...t),
+      max = Math.max(...t);
+    // Degenerate trend (all values equal) draws a flat line that reads like the
+    // suppressed empty state — show no sparkline rather than a misleading one.
+    if (max === min) return '';
+    const span = max - min;
     return t
       .map((v, i) => {
         const x = (i / (t.length - 1)) * 100;

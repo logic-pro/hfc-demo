@@ -2,15 +2,35 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { forkJoin, of } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, map, startWith, switchMap } from 'rxjs/operators';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  startWith,
+  switchMap,
+} from 'rxjs/operators';
 
 import { ApiService } from '../api.service';
 import { DashboardApiService } from './dashboard-api.service';
 import {
-  ActionRowDto, ActionStageFilter, DashboardFilters, DashboardResponse,
-  DashboardState, KpiCardVm, KpiDto, KpiKey, PeriodType, initialState,
+  ActionRowDto,
+  ActionStageFilter,
+  DashboardFilters,
+  DashboardResponse,
+  DashboardState,
+  KpiCardVm,
+  KpiDto,
+  KpiKey,
+  PeriodType,
+  initialState,
 } from './dashboard.models';
-import { deltaDirection, deltaStatus, formatDeltaPercent, formatKpiValue } from './utils/number-format.util';
+import {
+  deltaDirection,
+  deltaStatus,
+  formatDeltaPercent,
+  formatKpiValue,
+} from './utils/number-format.util';
 
 import { FilterBarComponent } from './components/filter-bar.component';
 import { KpiGridComponent } from './components/kpi-grid.component';
@@ -40,19 +60,33 @@ interface DashboardVm {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     DatePipe,
-    FilterBarComponent, KpiGridComponent, ChartPanelComponent, BookingTrendComponent,
-    DepositFunnelComponent, TerritoryBreakdownComponent, ActionTableComponent,
-    DetailDrawerComponent, LoadingSkeletonComponent, ErrorPanelComponent,
+    FilterBarComponent,
+    KpiGridComponent,
+    ChartPanelComponent,
+    BookingTrendComponent,
+    DepositFunnelComponent,
+    TerritoryBreakdownComponent,
+    ActionTableComponent,
+    DetailDrawerComponent,
+    LoadingSkeletonComponent,
+    ErrorPanelComponent,
   ],
   template: `
     <div class="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
         <!-- header + filters -->
-        <header class="flex flex-col gap-4 border-b border-[var(--line)] pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <header
+          class="flex flex-col gap-4 border-b border-[var(--line)] pb-6 lg:flex-row lg:items-end lg:justify-between"
+        >
           <div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-text)]">Operator</p>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink-strong)]">Operations Dashboard</h1>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent-text)]"
+            >
+              Operator
+            </p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-[var(--ink-strong)]">
+              Operations Dashboard
+            </h1>
             <p class="mt-1.5 text-sm text-[var(--ink-muted)]">
               Where is my territory leaking bookings and deposits — and what needs follow-up today?
             </p>
@@ -63,9 +97,12 @@ interface DashboardVm {
               [territoryId]="filters().territoryId"
               [territories]="territories()"
               (periodChange)="setPeriod($event)"
-              (territoryChange)="setTerritory($event)" />
+              (territoryChange)="setTerritory($event)"
+            />
             @if (state().lastUpdated) {
-              <p class="text-xs text-[var(--ink-faint)]">Updated {{ state().lastUpdated | date: 'shortTime' }}</p>
+              <p class="text-xs text-[var(--ink-faint)]">
+                Updated {{ state().lastUpdated | date: 'shortTime' }}
+              </p>
             }
           </div>
         </header>
@@ -95,7 +132,8 @@ interface DashboardVm {
                 [subtitle]="d.response.period.label"
                 [empty]="d.response.bookingTrend.length === 0"
                 emptyMessage="No bookings recorded for this period yet."
-                [insight]="trendInsight()">
+                [insight]="trendInsight()"
+              >
                 <app-booking-trend [points]="d.response.bookingTrend" />
               </app-chart-panel>
             }
@@ -108,8 +146,12 @@ interface DashboardVm {
               <app-chart-panel
                 title="Deposit funnel"
                 subtitle="Mirrors the booking workflow"
-                [insight]="funnelInsight()">
-                <app-deposit-funnel [stages]="d.response.depositFunnel" (drill)="applyDrill($event)" />
+                [insight]="funnelInsight()"
+              >
+                <app-deposit-funnel
+                  [stages]="d.response.depositFunnel"
+                  (drill)="applyDrill($event)"
+                />
               </app-chart-panel>
             }
           </div>
@@ -119,8 +161,14 @@ interface DashboardVm {
         @if (!state().loading && data(); as d) {
           @if (!filters().territoryId && d.response.territoryBreakdown.length > 1) {
             <section class="mt-6">
-              <app-chart-panel title="Territory breakdown" subtitle="Click a territory to focus the dashboard">
-                <app-territory-breakdown [rows]="d.response.territoryBreakdown" (select)="setTerritory($event)" />
+              <app-chart-panel
+                title="Territory breakdown"
+                subtitle="Click a territory to focus the dashboard"
+              >
+                <app-territory-breakdown
+                  [rows]="d.response.territoryBreakdown"
+                  (select)="setTerritory($event)"
+                />
               </app-chart-panel>
             </section>
           }
@@ -128,10 +176,13 @@ interface DashboardVm {
 
         <!-- revenue-not-available honesty note -->
         @if (!state().loading && data(); as d) {
-          <p class="mt-4 flex items-start gap-2 rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-soft)] px-4 py-2.5 text-sm text-[var(--ink)]">
+          <p
+            class="mt-4 flex items-start gap-2 rounded-lg border border-[var(--warning)]/40 bg-[var(--warning-soft)] px-4 py-2.5 text-sm text-[var(--ink)]"
+          >
             <span aria-hidden="true" class="text-[var(--warning)]">⚠</span>
             <span>
-              <span class="font-semibold text-[var(--ink-strong)]">Job revenue unavailable.</span> {{ d.response.revenue.reason }}
+              <span class="font-semibold text-[var(--ink-strong)]">Job revenue unavailable.</span>
+              {{ d.response.revenue.reason }}
               The “Deposit volume” tile shows deposits captured, not realized revenue.
             </span>
           </p>
@@ -146,7 +197,8 @@ interface DashboardVm {
               [rows]="filteredActionRows()"
               [activeFilter]="actionFilter()"
               (selectRow)="selectedRow.set($event)"
-              (clearFilter)="actionFilter.set('all')" />
+              (clearFilter)="actionFilter.set('all')"
+            />
           }
         </div>
       </main>
@@ -156,7 +208,8 @@ interface DashboardVm {
         [busy]="depositBusy()"
         [error]="depositError()"
         (sendDeposit)="payDeposit($event)"
-        (close)="closeDrawer()" />
+        (close)="closeDrawer()"
+      />
     </div>
   `,
 })
@@ -192,14 +245,23 @@ export class DashboardPageComponent {
         response: this.api.getDashboard(f),
         territories: this.api.getTerritories(),
       }).pipe(
-        map((vm): DashboardState<DashboardVm> => ({
-          data: vm, loading: false, error: null, lastUpdated: vm.response.lastUpdated,
-        })),
+        map(
+          (vm): DashboardState<DashboardVm> => ({
+            data: vm,
+            loading: false,
+            error: null,
+            lastUpdated: vm.response.lastUpdated,
+          }),
+        ),
         startWith(initialState<DashboardVm>()),
-        catchError(() => of<DashboardState<DashboardVm>>({
-          data: null, loading: false, lastUpdated: null,
-          error: 'Unable to load the dashboard. Check the API and retry.',
-        })),
+        catchError(() =>
+          of<DashboardState<DashboardVm>>({
+            data: null,
+            loading: false,
+            lastUpdated: null,
+            error: 'Unable to load the dashboard. Check the API and retry.',
+          }),
+        ),
       ),
     ),
   );
@@ -247,12 +309,17 @@ export class DashboardPageComponent {
   readonly filteredActionRows = computed<ActionRowDto[]>(() => {
     const rows = this.data()?.response.actionRows ?? [];
     switch (this.actionFilter()) {
-      case 'deposit_unpaid': return rows.filter((r) => !r.depositPaid && r.stage !== 'Expired');
-      case 'deposit_paid': return rows.filter((r) => r.depositPaid);
-      case 'expired': return rows.filter((r) => r.stage === 'Expired');
-      case 'open_slots': return rows.filter((r) => r.stage === 'Booked' || r.stage === 'Reminded');
+      case 'deposit_unpaid':
+        return rows.filter((r) => !r.depositPaid && r.stage !== 'Expired');
+      case 'deposit_paid':
+        return rows.filter((r) => r.depositPaid);
+      case 'expired':
+        return rows.filter((r) => r.stage === 'Expired');
+      case 'open_slots':
+        return rows.filter((r) => r.stage === 'Booked' || r.stage === 'Reminded');
       case 'all':
-      default: return rows;
+      default:
+        return rows;
     }
   });
 
@@ -266,23 +333,36 @@ export class DashboardPageComponent {
 
   readonly funnelInsight = computed(() => {
     const f = this.data()?.response.depositFunnel ?? [];
-    const drop = f.filter((s) => s.conversionFromPrev !== null)
-      .sort((a, b) => (a.conversionFromPrev! - b.conversionFromPrev!))[0];
+    const drop = f
+      .filter((s) => s.conversionFromPrev !== null)
+      .sort((a, b) => a.conversionFromPrev! - b.conversionFromPrev!)[0];
     const leak = f.find((s) => s.isLeak);
     if (!drop) return null;
-    return `Biggest drop at ${drop.stage} (${Math.round(drop.conversionFromPrev! * 100)}% retained)`
-      + (leak ? `; ${leak.count} expired without a deposit.` : '.');
+    return (
+      `Biggest drop at ${drop.stage} (${Math.round(drop.conversionFromPrev! * 100)}% retained)` +
+      (leak ? `; ${leak.count} expired without a deposit.` : '.')
+    );
   });
 
   // ── intent handlers ────────────────────────────────────────────────────────
   setPeriod(period: PeriodType): void {
+    this.clearDrawer();
     this.filters.update((f) => ({ ...f, period }));
   }
   setTerritory(territoryId: number | null): void {
+    this.clearDrawer();
     this.filters.update((f) => ({ ...f, territoryId }));
   }
+
+  /** Close the detail drawer + clear any deposit error. A filter change reloads
+   *  the dataset, so a row selected from the previous data is now stale — keeping
+   *  the drawer open would show an appointment that no longer matches the view. */
+  private clearDrawer(): void {
+    this.selectedRow.set(null);
+    this.depositError.set(null);
+  }
   applyDrill(target: ActionStageFilter): void {
-    this.actionFilter.set(target);        // keeps period + territory
+    this.actionFilter.set(target); // keeps period + territory
   }
   reload(): void {
     this.reloadTick.update((n) => n + 1);
@@ -301,7 +381,8 @@ export class DashboardPageComponent {
     if (this.depositBusy()) return;
     this.depositBusy.set(true);
     this.depositError.set(null);
-    const cents = row.depositCents > 0 ? row.depositCents : DashboardPageComponent.DEFAULT_DEPOSIT_CENTS;
+    const cents =
+      row.depositCents > 0 ? row.depositCents : DashboardPageComponent.DEFAULT_DEPOSIT_CENTS;
     const key = `dash-${row.appointmentId}-${crypto.randomUUID()}`;
     this.bookingApi.deposit(row.appointmentId, cents, key).subscribe({
       next: () => {
