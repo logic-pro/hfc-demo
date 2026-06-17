@@ -99,36 +99,50 @@ try {
   await opPage.close();
 
   // ── 2. REPORT BUILDER happy path (/back-office/reports) ──────────────────────
-  await gotoReady(page, web + "/back-office/reports", "main, bo-coming-soon, [data-testid='report-builder']").catch(() => {});
+  await gotoReady(page, web + "/back-office/reports", "main").catch(() => {});
   await page.waitForTimeout(400);
-  if (await isStub(page)) {
-    skip("/back-office/reports is still the <bo-coming-soon> stub (Reports UI lane unmerged) — happy-path assertions activate when it lands.");
+  // Detect the LIVE builder by a POSITIVE marker — its "Run report" submit control —
+  // NOT by the absence of <bo-coming-soon>: charlie's real builder (#59) honestly
+  // renders a Wave-2 "Schedule & Share" <bo-coming-soon> sub-section, so a naive stub
+  // check would FALSE-SKIP a shipped surface (a vacuous coverage gap — the worst kind).
+  // Foundation's full-page stub has no Run control, so its absence is the real signal.
+  const runBtn = page.getByRole("button", { name: /run report/i }).first();
+  await runBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if ((await runBtn.count()) === 0) {
+    skip("/back-office/reports is still the Foundation <bo-coming-soon> stub (no Run control) — happy-path assertions activate when the real builder lands.");
   } else {
-    // Real surface present — assert the builder works end to end. Intent-based
-    // locators (roles/names) so they survive charlie's exact markup; each missing
-    // control throws, so a half-built builder can't pass.
-    const runBtn = page.getByRole("button", { name: /run|generate|build report/i }).first();
-    ok((await runBtn.count()) > 0, "report builder: a Run/Generate control is present");
-    await runBtn.click().catch(() => {});
-    await page.waitForTimeout(800);
-    const rows = page.locator("table tbody tr");
-    ok((await rows.count()) >= 1, `report builder: run renders a non-empty table (${await rows.count()} rows)`);
-    ok((await page.getByRole("button", { name: /export|csv|xlsx|download/i }).count()) > 0,
-      "report builder: an export (CSV/XLSX) control is present");
-    // save round-trips: click Save, then assert a saved entry surfaces (saved list,
-    // toast, or selectable saved report). Best-effort positive signal, asserted.
-    const saveBtn = page.getByRole("button", { name: /^save/i }).first();
-    if ((await saveBtn.count()) > 0) {
-      await saveBtn.click().catch(() => {});
-      await page.waitForTimeout(600);
-      const savedSignal =
-        (await page.getByText(/saved/i).count()) > 0 ||
-        (await page.locator("[data-testid='saved-report'], .saved-report").count()) > 0;
-      ok(savedSignal, "report builder: save round-trips (a saved-report signal appears)");
-    } else {
-      failures.push("report builder: no Save control present (save round-trip unverifiable)");
-      console.error("  ✗ report builder: no Save control present");
-    }
+    // Drive the builder end to end against the live §C2 catalog. Each control is real
+    // and required, so a half-built builder fails loudly (never a vacuous pass).
+    // a) pick a metric — Run enables only with >=1 metric (canRun); the metric options
+    //    are the catalog checkboxes (the only checkboxes; Group-by is a radiogroup).
+    const metric = page.locator("fieldset input[type='checkbox']").first();
+    ok((await metric.count()) > 0, "report builder: catalog metrics rendered as selectable options");
+    await metric.check().catch(() => metric.click());
+    // b) choose a grouping (first dimension radio) so the result groups by a dimension.
+    const dim = page.locator("[role='radiogroup'][aria-label='Group by dimension'] [role='radio']").first();
+    if ((await dim.count()) > 0) await dim.click().catch(() => {});
+    // c) Run — now enabled — and assert a real, non-empty result table renders (the
+    //    results live region flips runStatus idle->ready, painting <table><tbody>).
+    ok(!(await runBtn.isDisabled()), "report builder: Run enables once a metric is selected");
+    await runBtn.click();
+    await page.waitForSelector("section[aria-live] table tbody tr", { timeout: 15000 }).catch(() => {});
+    const rows = page.locator("section[aria-live] table tbody tr");
+    const rc = await rows.count();
+    ok(rc >= 1, `report builder: run renders a non-empty result table (${rc} rows)`);
+    // d) export controls surface on the result (client-side CSV / XLSX).
+    ok((await page.getByRole("button", { name: /export (csv|xlsx)/i }).count()) > 0,
+      "report builder: export (CSV/XLSX) controls present on the result");
+    // e) save round-trips: name it, Save (enabled once result+metric+name), assert the
+    //    named report surfaces in the saved-reports list (saved() -> a <li> with it).
+    const saveName = "e2e smoke report";
+    await page.locator("#bo-save-name").fill(saveName);
+    const saveBtn = page.getByRole("button", { name: /^save$/i }).first();
+    ok((await saveBtn.count()) > 0 && !(await saveBtn.isDisabled()),
+      "report builder: Save enables once a report has run and been named");
+    await saveBtn.click();
+    await page.getByText(saveName, { exact: false }).first().waitFor({ timeout: 8000 }).catch(() => {});
+    ok((await page.getByText(saveName, { exact: false }).count()) > 0,
+      "report builder: save round-trips (named report appears in the saved list)");
     await shot("backoffice-2-reports.png");
   }
 
