@@ -56,7 +56,7 @@ chk "$(code -X POST "$B/api/appointments" -H "Authorization: Bearer $BB" -H 'Con
 chk "$(code -X POST "$B/api/appointments" -H "Authorization: Bearer $TU" -H 'Content-Type: application/json' -d "{\"slotId\":$SID,\"customerName\":\"Intruder\",\"service\":\"t\"}")" "404" "other franchisee can't book this slot -> 404"
 
 # idempotent deposit: same key twice keeps the amount
-AID=$(curl -s -H "Authorization: Bearer $BB" "$B/api/appointments" | python3 -c "import sys,json;print(json.load(sys.stdin)[-1]['id'])")
+AID=$(curl -s -H "Authorization: Bearer $BB" "$B/api/appointments" | python3 -c "import sys,json;print([a['id'] for a in json.load(sys.stdin) if a['customerName']=='Smoke'][-1])")
 curl -s -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer $BB" -H 'Idempotency-Key: smoke-key' -H 'Content-Type: application/json' -d '{"amountCents":5000}' >/dev/null
 amt=$(curl -s -X POST "$B/api/appointments/$AID/deposit" -H "Authorization: Bearer $BB" -H 'Idempotency-Key: smoke-key' -H 'Content-Type: application/json' -d '{"amountCents":5000}' | python3 -c "import sys,json;print(json.load(sys.stdin)['depositCents'])")
 chk "$amt" "5000" "deposit retried with same key does not double-charge"
@@ -77,8 +77,9 @@ NSID=$(curl -s -H "Authorization: Bearer $BB" "$B/api/slots" | python3 -c "impor
 chk "$(code -X POST "$B/api/appointments" -H "Authorization: Bearer $BB" -H 'Content-Type: application/json' -d "{\"slotId\":$NSID,\"service\":\"t\"}")" "400" "booking missing customerName -> 400"
 
 # cross-franchisee isolation: another franchisee cannot see this appointment
-seen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/appointments" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
-chk "$seen" "0" "other franchisee sees 0 of budget-blinds-irvine's appointments"
+# tustin now has its own seeded appointments, so count only the Smoke one (irvine's)
+seen=$(curl -s -H "Authorization: Bearer $TU" "$B/api/appointments" | python3 -c "import sys,json;print(len([a for a in json.load(sys.stdin) if a['customerName']=='Smoke']))")
+chk "$seen" "0" "other franchisee sees 0 of budget-blinds-irvine's 'Smoke' appointment"
 
 # ── Dashboard API (D6–D9 + v1.1 map): RBAC scope is sourced from the token claim,
 # never a header. The franchisor read-down is now AUTH-GATED (feat/corporate-role):
