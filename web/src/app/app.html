@@ -4,22 +4,6 @@
 </header>
 
 <main>
-  <!-- Tenant picker: selecting a franchisee mints a scoped token (login stand-in).
-       Two franchisees per brand show the isolation boundary: same brand, separate data. -->
-  <section class="picker">
-    <span class="picker-label" id="picker-label">Sign in as franchisee (tenant boundary):</span>
-    <div class="brand-chips" role="group" aria-labelledby="picker-label">
-      @for (f of franchisees(); track f.id) {
-        <button
-          class="chip"
-          [class.active]="f.id === selectedFranchiseeId()"
-          (click)="selectFranchisee(f)">
-          {{ f.name }}
-        </button>
-      }
-    </div>
-  </section>
-
   @if (error()) { <div class="banner error">{{ error() }}</div> }
   @if (notice()) { <div class="banner notice">{{ notice() }}</div> }
 
@@ -140,6 +124,6 @@
       </section>
     </div>
   } @else {
-    <p class="hint">Sign in as a franchisee above to load its tenant-isolated schedule.</p>
+    <p class="hint">Loading your tenant-isolated schedule…</p>
   }
 </main>

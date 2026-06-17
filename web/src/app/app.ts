@@ -39,26 +39,19 @@ export class App implements OnInit {
   readonly openSlots = computed(() => this.slots().filter((s) => !s.isBooked));
 
   ngOnInit(): void {
+    // We arrive here already authenticated as a franchisee (franchiseeGuard). The
+    // operator never picks a tenant on this page — that happened at /login. Resolve
+    // THIS tenant's own catalog record for the context header (keep only `me`, never
+    // the cross-brand directory), then load its isolated schedule. Every read is
+    // scoped server-side by the token's franchisee claim regardless.
     this.api.franchisees().subscribe({
-      next: (f) => this.franchisees.set(f),
+      next: (all) => {
+        const me = all.find((f) => f.id === this.selectedFranchiseeId());
+        this.franchisees.set(me ? [me] : []);
+      },
       error: () => this.error.set('Could not reach the API. Is it running on :5180?'),
     });
-  }
-
-  // Selecting a franchisee mints a scoped token (login stand-in), then loads the
-  // tenant-isolated schedule. The server resolves the tenant from the token's
-  // claim — same brand, different franchisee never leaks.
-  selectFranchisee(f: Franchisee): void {
-    this.error.set(null);
-    this.notice.set(null);
-    this.draft.set(null); // intake vocabulary is per-brand; start fresh on franchisee switch
-    this.api.token(f.id).subscribe({
-      next: (res) => {
-        this.tenant.setSession(res.franchiseeId ?? f.id, res.brandId ?? f.brandId, res.token, f.name);
-        this.refresh();
-      },
-      error: () => this.error.set('Could not sign in as that franchisee.'),
-    });
+    this.refresh();
   }
 
   // Free text -> typed draft. The backend caps spend/latency and degrades to a
