@@ -13,12 +13,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="flex h-full flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section class="flex h-full flex-col rounded-xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[var(--shadow-card)]">
       <header class="flex items-start justify-between gap-3">
         <div>
-          <h2 class="text-base font-semibold text-slate-900">{{ title() }}</h2>
+          <h2 class="text-base font-semibold text-[var(--ink-strong)]">{{ title() }}</h2>
           @if (subtitle()) {
-            <p class="mt-0.5 text-sm text-slate-500">{{ subtitle() }}</p>
+            <p class="mt-0.5 text-sm text-[var(--ink-muted)]">{{ subtitle() }}</p>
           }
         </div>
         <ng-content select="[panel-actions]" />
@@ -26,7 +26,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
       <div class="relative mt-4 flex-1">
         @if (empty()) {
-          <div class="flex h-full min-h-32 items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-500">
+          <div class="flex h-full min-h-32 items-center justify-center rounded-lg bg-[var(--surface-2)] text-sm text-[var(--ink-muted)]">
             {{ emptyMessage() || 'No data for this period.' }}
           </div>
         } @else {
@@ -35,7 +35,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       </div>
 
       @if (insight() && !empty()) {
-        <p class="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">{{ insight() }}</p>
+        <p class="mt-3 border-t border-[var(--line)] pt-3 text-sm text-[var(--ink-muted)]">{{ insight() }}</p>
       }
     </section>
   `,

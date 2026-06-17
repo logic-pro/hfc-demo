@@ -47,11 +47,11 @@
   border: 1px solid var(--surface-line); color: var(--ink-2);
 }
 .sc-status .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
-.sc-status[data-status='complete'] { color: var(--health-strong); border-color: rgba(47,211,166,.3); background: rgba(47,211,166,.06); }
+.sc-status[data-status='complete'] { color: var(--health-strong); border-color: color-mix(in srgb, var(--health-strong) 30%, transparent); background: color-mix(in srgb, var(--health-strong) 8%, transparent); }
 .sc-status[data-status='complete'] .status-dot { background: var(--health-strong); }
-.sc-status[data-status='partial'] { color: var(--health-fair); border-color: rgba(255,209,102,.3); background: rgba(255,209,102,.06); }
+.sc-status[data-status='partial'] { color: var(--health-fair); border-color: color-mix(in srgb, var(--health-fair) 30%, transparent); background: color-mix(in srgb, var(--health-fair) 8%, transparent); }
 .sc-status[data-status='partial'] .status-dot { background: var(--health-fair); }
-.sc-status[data-status='pending_financial_reporting'] { color: var(--prov-seeded); border-color: rgba(185,140,255,.3); background: rgba(185,140,255,.06); }
+.sc-status[data-status='pending_financial_reporting'] { color: var(--prov-seeded); border-color: color-mix(in srgb, var(--prov-seeded) 30%, transparent); background: color-mix(in srgb, var(--prov-seeded) 8%, transparent); }
 .sc-status[data-status='pending_financial_reporting'] .status-dot { background: var(--prov-seeded); }
 .sc-version { font-size: 11px; color: var(--ink-3); letter-spacing: .03em; }
 
@@ -66,7 +66,7 @@
 .bar-fill { height: 100%; border-radius: 999px; width: 0; transition: width 900ms var(--ease) 200ms; box-shadow: 0 0 10px -3px currentColor; }
 .bar-fill.pending-fill {
   width: 100%;
-  background: repeating-linear-gradient(45deg, rgba(185,140,255,.18) 0 7px, rgba(185,140,255,.06) 7px 14px);
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--prov-seeded) 18%, transparent) 0 7px, color-mix(in srgb, var(--prov-seeded) 6%, transparent) 7px 14px);
 }
 
 /* ── Notes ───────────────────────────────────────────────────────────────── */
@@ -95,16 +95,16 @@
 .dr-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .dr-label { font-size: 13px; font-weight: 600; color: var(--ink-0); }
 .dr-sev { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px; }
-.dr-sev[data-sev='high'] { color: var(--health-critical); background: rgba(255,84,112,.1); }
-.dr-sev[data-sev='medium'] { color: var(--health-warning); background: rgba(255,159,69,.1); }
+.dr-sev[data-sev='high'] { color: var(--health-critical); background: color-mix(in srgb, var(--health-critical) 10%, transparent); }
+.dr-sev[data-sev='medium'] { color: var(--health-warning); background: color-mix(in srgb, var(--health-warning) 10%, transparent); }
 .dr-sev[data-sev='low'] { color: var(--ink-3); background: rgba(255,255,255,.03); }
 .dr-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
 .dr-val { font-family: var(--font-display); font-size: 14px; font-weight: 600; color: var(--ink-1); }
 .dr-bench { font-size: 11px; color: var(--ink-3); }
 .dr-prov { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--surface-line); }
-.dr-prov[data-prov='measured'] { color: var(--prov-measured); border-color: rgba(95,227,192,.3); }
-.dr-prov[data-prov='seeded'] { color: var(--prov-seeded); border-color: rgba(185,140,255,.3); }
-.dr-prov[data-prov='reported'] { color: var(--prov-reported); border-color: rgba(127,168,255,.3); }
+.dr-prov[data-prov='measured'] { color: var(--prov-measured); border-color: color-mix(in srgb, var(--prov-measured) 30%, transparent); }
+.dr-prov[data-prov='seeded'] { color: var(--prov-seeded); border-color: color-mix(in srgb, var(--prov-seeded) 30%, transparent); }
+.dr-prov[data-prov='reported'] { color: var(--prov-reported); border-color: color-mix(in srgb, var(--prov-reported) 30%, transparent); }
 
 /* ── Loading / empty ─────────────────────────────────────────────────────── */
 .sc-loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding-top: 40px; }

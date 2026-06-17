@@ -90,8 +90,8 @@
   padding: 10px 13px; border-radius: var(--r-md); font-size: 12px; line-height: 1.5;
   color: var(--ink-2); border: 1px solid var(--surface-line); background: rgba(255,255,255,.012);
 }
-.prov-note[data-sev='warning'] { border-color: rgba(255,159,69,.26); }
-.prov-note[data-sev='critical'] { border-color: rgba(255,84,112,.28); }
+.prov-note[data-sev='warning'] { border-color: color-mix(in srgb, var(--health-warning) 26%, transparent); }
+.prov-note[data-sev='critical'] { border-color: color-mix(in srgb, var(--health-critical) 28%, transparent); }
 .pn-icon {
   flex: none; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%;
   display: grid; place-items: center; font-family: var(--font-display);

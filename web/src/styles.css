@@ -1,54 +1,187 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   OPERATIONS COMMAND CENTER — design system (Charlie / HFC executive dashboard)
-   One language: dark high-contrast canvas, health-encoded color, tabular hero
-   numbers, purposeful motion. No component library — every token is bespoke.
+   HFC DESIGN SYSTEM — one brand, two themes (light · dark)
+   Grounded in the official HFC palette (orange / amber / maroon / warm stone /
+   warm grey). Semantic tokens flip values between light & dark; component CSS
+   and Tailwind utilities only ever reference the tokens, never raw brand hex.
+
+   Brand palette (source of truth — .pm/parked/hfc-brand-theme.md):
+     #e7602a HFC Orange (primary)   #f99c1c HFC Amber (secondary)
+     #7c0000 HFC Maroon (deep/at-risk)  #d2cac2 Warm Stone   #646261 Warm Grey
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── LIGHT theme (default at :root) ────────────────────────────────────────── */
 :root {
-  /* ── Canvas & surfaces ─────────────────────────────────────────────────── */
-  --bg-0: #080B14;          /* deepest — page void */
-  --bg-1: #0B0F1A;          /* canvas */
-  --bg-2: #101626;          /* raised card */
-  --bg-3: #161E32;          /* card hover / nested */
-  --surface-line: #1E2942;  /* hairline borders */
-  --surface-glow: rgba(95, 227, 192, 0.06); /* inner accent glow */
+  color-scheme: light;
 
-  /* ── Ink ───────────────────────────────────────────────────────────────── */
-  --ink-0: #F4F7FF;         /* hero numbers */
-  --ink-1: #C7D2E8;         /* primary text */
-  --ink-2: #8A99B8;         /* labels */
-  --ink-3: #5A6B8C;         /* muted / captions */
-  --ink-4: #3A4661;         /* faintest */
+  /* Canvas & surfaces */
+  --bg:          #faf8f6;            /* warm near-white page */
+  --surface:     #ffffff;            /* raised card */
+  --surface-2:   #f1ece7;            /* nested / inset (warm stone tint ~25%) */
+  --surface-3:   #e9e2da;            /* deeper inset / hover */
+  --line:        #ddd4cb;            /* hairline borders (warm stone @ ~55%) */
+  --line-strong: #c9bdb0;
 
-  /* ── Health scale — color ONLY ever means health ───────────────────────── */
-  --health-critical: #FF5470;
-  --health-warning:  #FF9F45;
-  --health-fair:     #FFD166;
-  --health-good:     #5FE3C0;
-  --health-strong:   #2FD3A6;
+  /* Ink */
+  --ink:         #2a2724;            /* warm near-black */
+  --ink-strong:  #1c1916;            /* hero numbers / headings */
+  --ink-muted:   #646261;            /* warm grey — secondary copy */
+  --ink-faint:   #8a8682;            /* captions */
 
-  /* ── Signal accent (the one "look here" color) ─────────────────────────── */
-  --accent:       #5FE3C0;
-  --accent-dim:   #2FD3A6;
-  --accent-glow:  rgba(95, 227, 192, 0.16);
+  /* Brand accents */
+  --accent:       #e7602a;           /* HFC orange — primary on light (fills/borders/large) */
+  --accent-2:     #f99c1c;           /* HFC amber — secondary */
+  --accent-deep:  #7c0000;           /* HFC maroon — deep CTA / emphasis */
+  --accent-ink:   #ffffff;           /* text on an accent fill */
+  --accent-text:  #b34514;           /* AA-safe small accent TEXT on light surfaces */
+  --accent-soft:  rgba(231, 96, 42, .10);   /* tinted accent surface */
+  --accent-glow:  rgba(231, 96, 42, .16);
 
-  /* ── Provenance language (D16) ─────────────────────────────────────────── */
-  --prov-measured: #5FE3C0;  /* we measured it */
-  --prov-reported: #7FA8FF;  /* franchisee reported it */
-  --prov-seeded:   #B98CFF;  /* illustrative placeholder */
+  /* Semantic health — color is never the only signal (glyph + text always present) */
+  --good:        #176e40;            /* legible green on light (AA on good-soft) */
+  --good-soft:   rgba(26, 127, 75, .10);
+  --warning:     #9a5804;            /* amber, darkened for AA text on warn-soft + white */
+  --warning-soft:rgba(249, 156, 28, .14);
+  --critical:    #7c0000;            /* HFC maroon = at-risk / critical */
+  --critical-soft: rgba(124, 0, 0, .08);
+  --neutral-soft:rgba(100, 98, 97, .10);
 
-  /* ── Type ──────────────────────────────────────────────────────────────── */
+  /* ── Legacy dashboard token bridge (Executive surface reads these) ─────────
+     Mapped onto the light theme so the dashboard re-skins automatically. The
+     dashboard is normally viewed dark; in light it stays legible & on-brand. */
+  --bg-0: var(--bg);
+  --bg-1: var(--bg);
+  --bg-2: var(--surface);
+  --bg-3: var(--surface-2);
+  --surface-line: var(--line);
+  --surface-glow: var(--accent-soft);
+
+  --ink-0: var(--ink-strong);
+  --ink-1: var(--ink);
+  --ink-2: var(--ink-muted);
+  --ink-3: var(--ink-faint);
+  --ink-4: #b3aca4;
+
+  /* Health scale (low→high). Brand-anchored but perceptually separable:
+     critical→maroon, warning→orange, fair→gold, good/strong→semantic green
+     (spec keeps green = good). Darkened where needed for AA on light surfaces. */
+  --health-critical: #9a1414;
+  --health-warning:  #c2611f;
+  --health-fair:     #a87a13;
+  --health-good:     #2f9e62;
+  --health-strong:   #1a7f4b;
+
+  --accent-dim: #f99c1c;
+
+  /* Provenance language (D16) — a SEPARATE three-way semantic from brand accent.
+     Kept distinct so "measured / reported / illustrative" never reads as health
+     or brand. Tuned for legibility per theme. */
+  --prov-measured: #1a7f4b;          /* green — we measured it */
+  --prov-reported: #2563b0;          /* blue — franchisee reported it */
+  --prov-seeded:   #7a4fb5;          /* violet — illustrative */
+
+  /* Type */
   --font-display: 'Space Grotesk', 'SF Pro Display', system-ui, sans-serif;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'Space Grotesk', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* ── Geometry & motion ─────────────────────────────────────────────────── */
+  /* Geometry & motion */
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 22px;
   --gap: 16px;
   --ease: cubic-bezier(.22, .61, .36, 1);
   --t-fast: 180ms; --t-base: 280ms; --t-slow: 380ms;
+  --shadow-card: 0 1px 2px rgba(42,39,36,.04), 0 8px 24px -16px rgba(42,39,36,.18);
+  --shadow-pop:  0 18px 48px -16px rgba(42,39,36,.28);
+}
+
+/* ── DARK theme (warm charcoal, NOT cold slate) ────────────────────────────── */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg:          #1a1614;            /* warm charcoal, faint maroon undertone */
+  --surface:     #241e1b;            /* raised card */
+  --surface-2:   #2e2723;            /* nested / inset */
+  --surface-3:   #382f2a;            /* deeper inset / hover */
+  --line:        #4a423d;            /* warm grey @ ~40% */
+  --line-strong: #5c534d;
+
+  --ink:         #f3ece6;            /* warm off-white */
+  --ink-strong:  #fdf8f3;            /* hero numbers / headings */
+  --ink-muted:   #d2cac2;            /* warm stone reads as muted on dark */
+  --ink-faint:   #a89e95;
+
+  --accent:       #f99c1c;           /* amber pops better than orange on dark */
+  --accent-2:     #e7602a;           /* orange */
+  --accent-deep:  #b81818;           /* maroon, lightened so it stays visible on charcoal */
+  --accent-ink:   #1a1614;
+  --accent-text:  #f99c1c;           /* amber already clears AA on dark surfaces */
+  --accent-soft:  rgba(249, 156, 28, .12);
+  --accent-glow:  rgba(249, 156, 28, .18);
+
+  --good:        #4cc486;
+  --good-soft:   rgba(76, 196, 134, .14);
+  --warning:     #f99c1c;
+  --warning-soft:rgba(249, 156, 28, .14);
+  --critical:    #ff6b6b;            /* maroon-family red, legible on dark */
+  --critical-soft: rgba(255, 107, 107, .12);
+  --neutral-soft:rgba(210, 202, 194, .10);
+
+  --bg-0: #141110;
+  --bg-1: var(--bg);
+  --bg-2: var(--surface);
+  --bg-3: var(--surface-2);
+  --surface-line: var(--line);
+  --surface-glow: var(--accent-soft);
+
+  --ink-0: var(--ink-strong);
+  --ink-1: var(--ink);
+  --ink-2: var(--ink-muted);
+  --ink-3: var(--ink-faint);
+  --ink-4: #6b625b;
+
+  /* Health: critical→maroon-red, warning→HFC orange, fair→gold, good/strong→green.
+     Mirrors HEALTH_HEX in ui/health.ts so SVG dataviz and CSS chrome never drift. */
+  --health-critical: #ff6b6b;
+  --health-warning:  #e7602a;
+  --health-fair:     #f9c04c;
+  --health-good:     #5ccb8e;
+  --health-strong:   #2fd3a6;
+
+  --accent-dim: #e7602a;
+
+  --prov-measured: #4cc486;
+  --prov-reported: #7fa8ff;
+  --prov-seeded:   #c0a0ff;
+
   --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 30px -12px rgba(0,0,0,.6);
-  --shadow-pop: 0 18px 48px -16px rgba(0,0,0,.75);
+  --shadow-pop:  0 18px 48px -16px rgba(0,0,0,.75);
+}
+
+/* When the user has not chosen a theme (no data-theme on <html>), follow the OS.
+   The inline boot script in index.html normally sets data-theme before paint;
+   this @media block is the CSS-level fallback / belt-and-braces. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --bg: #1a1614; --surface: #241e1b; --surface-2: #2e2723; --surface-3: #382f2a;
+    --line: #4a423d; --line-strong: #5c534d;
+    --ink: #f3ece6; --ink-strong: #fdf8f3; --ink-muted: #d2cac2; --ink-faint: #a89e95;
+    --accent: #f99c1c; --accent-2: #e7602a; --accent-deep: #b81818; --accent-ink: #1a1614; --accent-text: #f99c1c;
+    --accent-soft: rgba(249,156,28,.12); --accent-glow: rgba(249,156,28,.18);
+    --good: #4cc486; --good-soft: rgba(76,196,134,.14);
+    --warning: #f99c1c; --warning-soft: rgba(249,156,28,.14);
+    --critical: #ff6b6b; --critical-soft: rgba(255,107,107,.12);
+    --neutral-soft: rgba(210,202,194,.10);
+    --bg-0: #141110; --bg-1: #1a1614; --bg-2: #241e1b; --bg-3: #2e2723;
+    --surface-line: #4a423d; --surface-glow: rgba(249,156,28,.12);
+    --ink-0: #fdf8f3; --ink-1: #f3ece6; --ink-2: #d2cac2; --ink-3: #a89e95; --ink-4: #6b625b;
+    --health-critical: #ff6b6b; --health-warning: #e7602a; --health-fair: #f9c04c;
+    --health-good: #5ccb8e; --health-strong: #2fd3a6;
+    --accent-dim: #e7602a;
+    --prov-measured: #4cc486; --prov-reported: #7fa8ff; --prov-seeded: #c0a0ff;
+    --shadow-card: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 30px -12px rgba(0,0,0,.6);
+    --shadow-pop: 0 18px 48px -16px rgba(0,0,0,.75);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -58,10 +191,10 @@ html, body {
   padding: 0;
   height: 100%;
   background:
-    radial-gradient(1200px 600px at 12% -8%, rgba(95,227,192,.05), transparent 60%),
-    radial-gradient(1000px 500px at 100% 0%, rgba(127,168,255,.05), transparent 55%),
-    var(--bg-1);
-  color: var(--ink-1);
+    radial-gradient(1200px 600px at 12% -8%, var(--accent-soft), transparent 60%),
+    radial-gradient(1000px 500px at 100% 0%, var(--neutral-soft), transparent 55%),
+    var(--bg);
+  color: var(--ink);
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.5;
@@ -74,68 +207,71 @@ body { font-feature-settings: 'ss01' 1, 'cv01' 1; }
 /* Tabular numbers everywhere a figure is shown — alignment is the whole point. */
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }
 
-/* Heading TYPOGRAPHY is global; heading COLOR is not. The near-white --ink-0 is
-   only legible on the dark executive canvas — left global+unlayered it outranked
-   Tailwind's @layer utilities and whitewashed every heading on the light operator
-   and scheduling surfaces. Color is scoped to the dark surface below; light
-   surfaces inherit their own slate ink (Tailwind text-slate-* utilities, or the
-   booking shell's :host --ink). */
-h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; margin: 0; letter-spacing: -0.01em; }
-
-/* Dark executive command center (/corporate) — bright hero-ink headings.
-   (/login is self-contained; light /dashboard + /booking inherit slate ink.) */
-app-dashboard h1, app-dashboard h2, app-dashboard h3, app-dashboard h4 { color: var(--ink-0); }
-
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 
-::selection { background: var(--accent-glow); color: var(--ink-0); }
+::selection { background: var(--accent-glow); color: var(--ink-strong); }
 
 /* Custom scrollbar so even the chrome reads as one product. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface-line); border-radius: 8px; border: 2px solid var(--bg-1); }
-::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--line-strong); }
 
-/* ── Reusable card surface ───────────────────────────────────────────────── */
+/* ── Reusable card surface (Executive dashboard) ─────────────────────────────── */
 .card {
-  background: linear-gradient(180deg, var(--bg-2), var(--bg-1));
-  border: 1px solid var(--surface-line);
+  background: linear-gradient(180deg, var(--surface), var(--bg));
+  border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
   position: relative;
 }
 .card::before {
-  /* subtle inner top-glow — the "elevated card with inner glow" identity cue */
   content: '';
   position: absolute; inset: 0;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255,255,255,.035), transparent 42%);
+  background: linear-gradient(180deg, rgba(255,255,255,.04), transparent 42%);
   pointer-events: none;
 }
+[data-theme='dark'] .card::before,
+:root:not([data-theme]) .card::before { background: linear-gradient(180deg, rgba(255,255,255,.035), transparent 42%); }
 
-/* ── Pills / chips ───────────────────────────────────────────────────────── */
+/* ── Pills / chips ───────────────────────────────────────────────────────────── */
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 3px 9px; border-radius: 999px;
   font-size: 11px; font-weight: 600; letter-spacing: .02em;
-  border: 1px solid var(--surface-line);
-  color: var(--ink-2); background: rgba(255,255,255,.02);
+  border: 1px solid var(--line);
+  color: var(--ink-muted); background: var(--neutral-soft);
   white-space: nowrap;
 }
 
 .eyebrow {
   font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--ink-faint);
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 
-/* ── Franchisee operator dashboard (/dashboard) uses Tailwind UTILITIES ONLY ──
-   No preflight import — avoids resetting the booking SPA + corporate dashboard
-   base styles. Utility classes + theme tokens only. */
-@layer theme, utilities;
+/* ── Base element rules live in @layer base so Tailwind utilities still win ───────
+   The franchisee operator surface uses Tailwind UTILITIES only (no preflight, to
+   avoid resetting the booking SPA + corporate dashboard). Layer order below keeps
+   utilities authoritative over base. */
+@layer theme, base, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
+
+@layer base {
+  /* Heading typography is global; heading COLOR is theme-aware here and, being in
+     @layer base, is correctly outranked by any Tailwind text-* utility a surface
+     applies (this is the proper home for what #40 worked around inline). */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+    color: var(--ink-strong);
+  }
+}

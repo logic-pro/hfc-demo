@@ -17,12 +17,16 @@ export function band(score: number): HealthBand {
 }
 
 // Resolved hex for canvas use (SVG fills/strokes) — mirrors the CSS custom props
-// in theme.css so TS-driven dataviz and CSS-driven chrome never drift.
+// in styles.css so TS-driven dataviz and CSS-driven chrome never drift. Tuned for
+// the executive dashboard's dark canvas and grounded in the HFC palette: critical
+// = maroon-family red, warning = HFC orange, fair = HFC amber/gold, and good/
+// strong keep a semantic green (the spec keeps green = good) — a perceptually
+// separable ramp where every band reads distinctly at a glance.
 export const HEALTH_HEX: Record<HealthBand, string> = {
-  critical: '#FF5470',
-  warning: '#FF9F45',
-  fair: '#FFD166',
-  good: '#5FE3C0',
+  critical: '#FF6B6B',
+  warning: '#E7602A',
+  fair: '#F9C04C',
+  good: '#5CCB8E',
   strong: '#2FD3A6',
 };
 

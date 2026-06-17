@@ -55,8 +55,8 @@ interface MapPoint {
         <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" preserveAspectRatio="xMidYMid meet" class="map-svg">
           <defs>
             <radialGradient id="mapglow" cx="50%" cy="38%" r="70%">
-              <stop offset="0%" stop-color="rgba(95,227,192,.07)" />
-              <stop offset="100%" stop-color="rgba(95,227,192,0)" />
+              <stop offset="0%" stop-color="color-mix(in srgb, var(--accent) 9%, transparent)" />
+              <stop offset="100%" stop-color="color-mix(in srgb, var(--accent) 0%, transparent)" />
             </radialGradient>
             <filter id="dotglow" x="-120%" y="-120%" width="340%" height="340%">
               <feGaussianBlur stdDeviation="5" result="b" />

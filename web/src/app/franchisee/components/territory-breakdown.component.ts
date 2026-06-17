@@ -13,23 +13,23 @@ import { formatCount, formatPercent } from '../utils/number-format.util';
       @for (t of rows(); track t.territoryId) {
         <li>
           <button type="button" (click)="select.emit(t.territoryId)"
-            class="w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+            class="w-full rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
             <div class="flex items-center justify-between text-sm">
-              <span class="font-medium text-slate-800">{{ t.territoryName }}</span>
-              <span class="text-slate-500">{{ count(t.bookings) }} bookings
+              <span class="font-medium text-[var(--ink-strong)]">{{ t.territoryName }}</span>
+              <span class="text-[var(--ink-muted)]">{{ count(t.bookings) }} bookings
                 @if (t.needsActionCount > 0) {
-                  · <span class="font-medium text-amber-700">{{ t.needsActionCount }} need action</span>
+                  · <span class="font-medium text-[var(--warning)]">{{ t.needsActionCount }} need action</span>
                 }
               </span>
             </div>
             <div class="mt-1.5 grid grid-cols-2 gap-3">
               <div>
-                <div class="flex justify-between text-xs text-slate-500"><span>Fill</span><span>{{ pct(t.fillRate) }}</span></div>
-                <div class="mt-0.5 h-1.5 w-full rounded-full bg-slate-100"><div class="h-full rounded-full bg-slate-600" [style.width.%]="t.fillRate * 100"></div></div>
+                <div class="flex justify-between text-xs text-[var(--ink-muted)]"><span>Fill</span><span>{{ pct(t.fillRate) }}</span></div>
+                <div class="mt-0.5 h-1.5 w-full rounded-full bg-[var(--surface-3)]"><div class="h-full rounded-full bg-[var(--accent)]" [style.width.%]="t.fillRate * 100"></div></div>
               </div>
               <div>
-                <div class="flex justify-between text-xs text-slate-500"><span>Deposit conv.</span><span>{{ pct(t.depositConversion) }}</span></div>
-                <div class="mt-0.5 h-1.5 w-full rounded-full bg-slate-100"><div class="h-full rounded-full" [class]="t.depositConversion < 0.6 ? 'bg-amber-500' : 'bg-emerald-500'" [style.width.%]="t.depositConversion * 100"></div></div>
+                <div class="flex justify-between text-xs text-[var(--ink-muted)]"><span>Deposit conv.</span><span>{{ pct(t.depositConversion) }}</span></div>
+                <div class="mt-0.5 h-1.5 w-full rounded-full bg-[var(--surface-3)]"><div class="h-full rounded-full" [class]="t.depositConversion < 0.6 ? 'bg-[var(--warning)]' : 'bg-[var(--good)]'" [style.width.%]="t.depositConversion * 100"></div></div>
               </div>
             </div>
           </button>
