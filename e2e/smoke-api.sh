@@ -253,6 +253,10 @@ qj='-H Content-Type:application/json'
 chk "$(code "$B/api/reports/catalog")" "401" "reports/catalog: no token -> 401"
 chk "$(code -H "Authorization: Bearer $CORP" "$B/api/reports/catalog")" "200" "reports/catalog: corporate -> 200"
 chk "$(code -X POST -H "Authorization: Bearer $BB" $qj "$B/api/reports/query" -d '{"metrics":["composite_score"]}')" "403" "reports/query: franchisee -> 403 (corporate-only)"
+# the catalog endpoint is corporate-only too (not just /query): a franchisee operator
+# is 403, while a middle corporate tier (brand) reads it DOWN at 200 (scoped, no leak).
+chk "$(code -H "Authorization: Bearer $TU" "$B/api/reports/catalog")"   "403" "reports/catalog: franchisee -> 403 (corporate-only on catalog too)"
+chk "$(code -H "Authorization: Bearer $BTOK" "$B/api/reports/catalog")" "200" "reports/catalog: brand token -> 200 (read-down)"
 
 # catalog carries metrics + dimensions + at least the latest period.
 catok=$(curl -s -H "Authorization: Bearer $CORP" "$B/api/reports/catalog" | python3 -c "
