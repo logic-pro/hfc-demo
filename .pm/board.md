@@ -1,9 +1,31 @@
 # PM Board (PM-owned · single writer)
 
-**Trunk:** `origin/main = 3a303dc` (#46 HFC theme system; redesign DEPLOYED LIVE 2026-06-16). **Round:** Back-Office Wave 1 OPEN.
-**Last reconcile:** 2026-06-16Tm — new initiative round assigned.
+**Trunk:** `origin/main = 1de8a81` (Back-Office Wave 1 landed: #48 #49 #50 #51* #52 #54). **Round:** STABILIZATION OPEN.
+**Last reconcile:** 2026-06-17Ts — stabilization round assigned (user: fix all bugs + verify all-brand seed before new features).
 
-## 🟢 Back-Office Wave 1 — OPEN (2026-06-16Tm)
+## 🟢 STABILIZATION — OPEN (2026-06-17Ts)
+User directive: *"iron out all the bugs and make sure all the brands are seeded with good data before we move on to new features."* No new surface area. Disjoint paths → all 6 parallel; `/start-lane` in each window. Decisions D16–D18.
+
+**⚠ KEY FINDING — #51 GHOST-MERGED.** PR #51 (flagship Report Builder UI) shows *merged* but `origin/main` has only the ComingSoon **stub** + none of the 6 reports/ files. Tip-only merge (the `risks.md` pattern again). Real work intact on `feat/report-builder-ui@e84b9ba` → charlie re-lands. **Until re-landed, the back-office Reports section is a stub on the live demo.**
+
+**Other verified bugs:** booking cross-tenant picker (FIXED, PR #55) · operator dashboard stale detail-drawer on filter change (HIGH) + flat sparkline (MED) · back-office home mislabels the LIVE Territory Explorer "Coming soon" (MED) · local stale-SQLite boot crash (dev-only, EnsureCreated no-op). Seed coverage pre-checked healthy (all 8 brands, both planes).
+
+**Unblocked capability:** Playwright now runs LOCALLY in-sandbox (no sudo) — `~/.local/pw-libs` + `LD_LIBRARY_PATH`, drive same-origin via `api/wwwroot`. drive-franchisee + booking fix verified in-browser (D17). echo wires it into e2e.
+
+| Slot | Branch | Mission | State |
+|---|---|---|---|
+| (PM hotfix) | fix/scheduling-cross-tenant-picker | Remove booking cross-tenant picker (D16, reverses O2) | ✅ PR #55 OPEN · CI green · MERGEABLE |
+| charlie | feat/report-builder-ui | 🔴 RE-LAND ghost-merged Report Builder (verify artifact lands) | 📥 assigned |
+| bravo | fix/operator-dashboard | Operator dashboard: stale drawer (HIGH) + flat sparkline (MED) | 📥 assigned |
+| chore-modularize | fix/backoffice-home-status | Flip Territories card 'soon'→'live'; defer prettier sweep | 📥 assigned |
+| alpha | chore/seed-quality-audit | All-brand seed-quality matrix + reporting integrity + EF-swap (D3) | 📥 assigned |
+| delta | chore/dev-db-and-lint-gate | Dev stale-db run script + flip backoffice lint hard (after clean) | 📥 assigned |
+| echo | test/backoffice-e2e | Rebase #53 (additive) + local browser e2e recipe + verify round | 📥 assigned |
+
+**Merge order:** #55 (booking) → charlie re-land + bravo + chore (parallel, disjoint) → alpha/delta (independent) → echo last (verifies all). **CI green on the PR is the merge authority (D5); verify the diff, not the "merged" label (the #51 lesson).**
+
+---
+## ✅ Back-Office Wave 1 — CLOSED (2026-06-16Tm)
 Initiative: turn the 3-surface demo into a franchisor back-office at `/back-office` (corporate-scope), anchored by a
 **full custom report builder** + **Territory Explorer**, with Users&Roles / Org&Catalog sections. Plan: `docs/backoffice/ROADMAP.md` · contracts: `docs/backoffice/CONTRACTS.md`. DISJOINT paths → parallel; `/start-lane` in each window.
 
