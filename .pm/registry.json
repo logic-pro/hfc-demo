@@ -1,35 +1,35 @@
 {
   "_comment": "Lanes are REUSABLE NATO slots (alpha..echo + chore-modularize): the worktree is a persistent execution slot; the task/role/allowed_paths/skills are reassigned per round via the .pm bus. PM-owned (single writer). 'name' (friendly) is decoupled from 'branch' so we never have to rename a branch mid-round.",
-  "namingConvention": "Slots: alpha, bravo, charlie, delta, echo, chore-modularize. A slot takes a fresh feat/<area> or chore/<area> branch per assignment. NEVER rename a branch with an open PR or mid-round. Physical `git worktree move` only when that slot's VS Code window is CLOSED.",
-  "_reconciled": "2026-06-16Tm — Back-Office Wave 1 round assigned (files: outbox/<slot>/2026-06-16m__*.md; prior round moved to .pm/archive/<slot>/). Redesign #46 is LIVE. DISJOINT path ownership so all 6 run in parallel. Foundation (chore-modularize) lands FIRST; UI lanes rebase onto it. Run /start-lane in each window. Plan: docs/backoffice/ROADMAP.md · contracts: docs/backoffice/CONTRACTS.md.",
+  "namingConvention": "Slots: alpha, bravo, charlie, delta, echo, chore-modularize. A slot takes a fresh feat/<area> or chore/<area> or fix/<area> branch per assignment. NEVER rename a branch with an open PR or mid-round. Physical `git worktree move` only when that slot's VS Code window is CLOSED.",
+  "_reconciled": "2026-06-17Ts — STABILIZATION round assigned (user: iron out all bugs + verify all-brand seed before new features). Files: outbox/<slot>/2026-06-17s__*.md; prior round (Back-Office Wave 1) archived. DISJOINT path ownership → all 6 run in parallel. Run /start-lane in each window. Key recovery: #51 Report Builder GHOST-MERGED (tip only) → charlie re-lands. Playwright now runs locally in-sandbox (D17).",
   "slots": [
-    { "name": "chore-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "feat/backoffice-shell",
-      "status": "assigned", "task": "FOUNDATION: back-office shell + scope-aware nav + /back-office route subtree + reusable ComingSoon + back-office home + Users&Roles/Org&Catalog admin stubs + working stub files at reports/territories paths. LANDS FIRST (gates the UI lanes).", "free": false,
-      "allowed_paths": ["web/src/app/app.routes.ts","web/src/app/app-shell.ts","web/src/app/backoffice/shell/**","web/src/app/backoffice/shared/**","web/src/app/backoffice/home/**","web/src/app/backoffice/admin/**","web/src/app/backoffice/reports/report-builder.component.ts","web/src/app/backoffice/territories/territory-explorer.component.ts","web/src/app/backoffice/territories/territory-scorecard.component.ts"],
-      "skills": ["frontend-bi-dashboard-architect","worktree-summary-reporter","worktree-continuation"] },
-
-    { "name": "alpha", "dir": "hfc-demo-worktrees/alpha", "branch": "feat/reporting-api",
-      "status": "assigned", "task": "REPORTING API (contract owner): GET /api/reports/catalog, POST /api/reports/query, /api/reports/saved CRUD over the existing read-model. Corporate-scope, RBAC read-down, problem+json. Publish C2 shapes in first commit.", "free": false,
-      "allowed_paths": ["api/**"],
-      "skills": ["corporate-rollup-readmodel-architect","franchise-kpi-metric-guard","worktree-summary-reporter","worktree-continuation"] },
-
     { "name": "charlie", "dir": "hfc-demo-worktrees/charlie", "branch": "feat/report-builder-ui",
-      "status": "assigned", "task": "REPORT BUILDER UI (flagship): metrics x dimensions x period -> run -> table+chart -> CSV/XLSX export (exceljs head start in stash@{0}) -> save. Depends on Foundation (rebase after it lands) + alpha C2 (mock until live).", "free": false,
-      "allowed_paths": ["web/src/app/backoffice/reports/**"],
+      "status": "assigned", "task": "RE-LAND the Report Builder UI — #51 shows merged but origin/main has only the stub (ghost merge). Rebase e84b9ba onto main, flip mock→live (#50 reporting API), VERIFY the 6 reports/ files actually land. HIGH/flagship recovery.", "free": false,
+      "allowed_paths": ["web/src/app/backoffice/reports/**","web/package.json","web/package-lock.json"],
       "skills": ["frontend-bi-dashboard-architect","dashboard-trust-provenance-polish","worktree-summary-reporter","worktree-continuation"] },
 
-    { "name": "bravo", "dir": "hfc-demo-worktrees/bravo", "branch": "feat/territory-explorer",
-      "status": "assigned", "task": "TERRITORY EXPLORER + scorecard drill-down: sortable/filterable list of all in-scope territories -> per-territory scorecard (/back-office/territories/:id). Reads existing /api/territories + read-model. Depends on Foundation.", "free": false,
-      "allowed_paths": ["web/src/app/backoffice/territories/**"],
-      "skills": ["frontend-bi-dashboard-architect","ceo-dashboard-intervention-loop","dashboard-crossfilter-scope","worktree-summary-reporter"] },
+    { "name": "bravo", "dir": "hfc-demo-worktrees/bravo", "branch": "fix/operator-dashboard",
+      "status": "assigned", "task": "OPERATOR DASHBOARD fixes (territory work merged #52): (1) HIGH clear selectedRow on period/territory filter change so the detail drawer doesn't show stale rows; (2) MED suppress flat sparkline when max===min. Do NOT regress empty-state honesty.", "free": false,
+      "allowed_paths": ["web/src/app/franchisee/**"],
+      "skills": ["frontend-bi-dashboard-architect","dashboard-crossfilter-scope","worktree-summary-reporter","worktree-continuation"] },
 
-    { "name": "delta", "dir": "hfc-demo-worktrees/delta", "branch": "chore/deploy-hardening",
-      "status": "assigned", "task": "INFRA/CI: harden deploy.sh (auto-detect region; reconcile RG-meta(eastus2) vs resources(centralus); add --code-only mode) + ensure CI builds backoffice/** on PRs. Independent lane.", "free": false,
+    { "name": "chore-modularize", "dir": "hfc-demo-worktrees/chore-modularize", "branch": "fix/backoffice-home-status",
+      "status": "assigned", "task": "BACK-OFFICE HOME honesty: flip the Territories card status 'soon'→'live' (the explorer is merged/live). Keep Reports/Users/Catalog 'soon' (genuine stubs) — but flip Reports→'live' once charlie re-lands. DEFER the m2 prettier sweep until reports/** is settled.", "free": false,
+      "allowed_paths": ["web/src/app/backoffice/home/**"],
+      "skills": ["frontend-bi-dashboard-architect","worktree-summary-reporter","worktree-continuation"] },
+
+    { "name": "alpha", "dir": "hfc-demo-worktrees/alpha", "branch": "chore/seed-quality-audit",
+      "status": "assigned", "task": "ALL-BRAND SEED-QUALITY audit + reporting integrity (user directive). Per-brand coverage matrix across both seed planes; verify /api/reports/* returns good per-brand data live; assess the deferred EF read-model swap (D3, now unblocked). Report findings; PR only if fixing seed gaps.", "free": false,
+      "allowed_paths": ["api/**"],
+      "skills": ["corporate-rollup-readmodel-architect","franchise-kpi-metric-guard","qa-integration-tester","worktree-summary-reporter"] },
+
+    { "name": "delta", "dir": "hfc-demo-worktrees/delta", "branch": "chore/dev-db-and-lint-gate",
+      "status": "assigned", "task": "INFRA/CI: add a local dev run script that rm's the stale hfc-demo.db before boot (EnsureCreated won't migrate); flip the backoffice prettier lint gate to BLOCKING once backoffice/** is clean on main (after charlie+chore). Route the EF-migrations question to alpha (api/** out of lane).", "free": false,
       "allowed_paths": ["infra/**",".github/**","scripts/**"],
       "skills": ["worktree-summary-reporter","worktree-continuation"] },
 
     { "name": "echo", "dir": "hfc-demo-worktrees/echo", "branch": "test/backoffice-e2e",
-      "status": "assigned", "task": "e2e/QA: drive /back-office nav (corporate-only RBAC), report-builder happy path, territory drill-down; extend smoke-api.sh with /api/reports/*. Carries cherry-picked 5cf991b assertion-hardening. Runs last.", "free": false,
+      "status": "assigned", "task": "Rebase #53 onto main (resolve smoke-api.sh ADDITIVELY — union with the live reports block); adopt the NEW local-browser Playwright recipe (D17) and wire a runnable helper into e2e/; verify this round's fixes locally in-browser (booking #55, re-landed report builder, territory drill-down). Runs LAST.", "free": false,
       "allowed_paths": ["e2e/**"],
       "skills": ["qa-integration-tester","start-lane","worktree-summary-reporter","worktree-continuation"] }
   ],

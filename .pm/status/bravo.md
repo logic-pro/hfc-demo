@@ -1,20 +1,28 @@
 # Status: bravo
-_Updated 2026-06-17T04-57-56Z (branch feat/territory-explorer)_
+_Updated 2026-06-17T20-23-07Z (branch fix/operator-dashboard)_
 
-bravo — TERRITORY EXPLORER + scorecard drill-down: DONE → PR #52 (CI running).
+bravo — Operator dashboard correctness fixes: DONE, PR #57 (fix/operator-dashboard -> main), CI running.
 
-Branch feat/territory-explorer, rebased onto origin/main AFTER Foundation #48 landed (d7073c1). Overwrote the two C1 stubs; edited ONLY web/src/app/backoffice/territories/** — no app.routes.ts / app-shell.ts / api/** / other lanes touched.
+Scope: web/src/app/franchisee/** ONLY (2 files). Disjoint from charlie/chore. No api/**, no app.routes/shell.
 
-DELIVERED
-- Territory Explorer (/back-office/territories): sortable/filterable list of every in-scope territory (name+franchisee, brand, region, composite health w/ banded bar, data-completeness status, open-flag count). Defaults worst-health-first; "At risk" quick filter; brand/region selects (options derived from in-scope rows only — no sibling-brand leak); search. Joins /api/dashboard/watchlist for per-row flags. Row → scorecard. Loading/error+retry/empty states; a11y (aria-sort, scoped row headers, focus-visible, sr-only caption).
-- Territory Scorecard (/back-office/territories/:id): composite radial gauge (reused ec-radial-gauge), 4 sub-scores (financial honestly Pending), drivers each w/ provenance badge (Measured/Reported/Illustrative — NPS/bookings/deposits respect provenance), open at-risk flags, score notes. Reacts to :id for neighbour nav; watchlist failure degrades gracefully.
+## Both assigned bugs fixed
+- Bug 1 (HIGH) stale detail-drawer: setPeriod()/setTerritory() now call a shared clearDrawer()
+  (selectedRow.set(null) + depositError.set(null)) before the reload. Matches existing close/pay clear.
+- Bug 2 (MED) flat sparkline: sparkPoints() returns empty when max===min, so a degenerate trend
+  [5,5,5,5] renders the empty spacer instead of a misleading flat line at y=30. kpi-card.component.ts.
 
-DATA: reused existing read model via DashboardDataService (GET /api/territories, /api/territories/:id/health-score, /api/dashboard/watchlist) + dashboard.models DTOs + ui/health language. NO API change needed.
+## Honesty logic untouched (per DO-NOT): measured-zero dash, no red, no spark — not regressed.
 
-RBAC: read-down enforced server-side (JWT scope); UI renders only what API returns. Design tokens only.
+## Gate
+- cd web && npx ng build --configuration development -> GREEN (5.1s).
+- Local Playwright drive NOT run: in-sandbox Chromium cannot launch (missing libnspr4, no sudo —
+  same blocker echo documented). drive-franchisee.mjs is browser-based; runs in post-deploy-e2e CI.
+- Prettier SCOPED to the 2 changed files, NOT the whole folder: prettier --write franchisee/**
+  reformatted 16 untouched files (+800 lines pure formatting churn) that would bury a 2-bug fix.
+  Reverted those to origin/main; kept format-what-you-touch on the 2 edited files.
 
-GATE: cd web && npx ng build --configuration development → GREEN. Both components emit as own lazy chunks.
+## Cross-lane suggestion (PM to route to echo, e2e/**):
+  extend drive-franchisee.mjs to lock in Bug 1: open drawer -> change period -> assert drawer closed.
+  Out of my allowed_paths; flagging only.
 
-DELIBERATE OMISSION (honesty): no fabricated per-territory trend line — the contract has no per-territory time series, so I show drivers vs benchmark (real, sourced) instead of inventing a chart. If a historical trend is wanted, it needs an additive read-model endpoint — flagging for alpha rather than writing api/** myself. Routing no inbox note now since trend was not a hard gate item; raise if you want it scheduled for Wave 2.
-
-NEXT: CI green → merge (per merge order, Territory lands after Reporting API). echo can drive the BO territory drill-down e2e against this.
+Next: awaiting CI green -> merge, then next assignment.
